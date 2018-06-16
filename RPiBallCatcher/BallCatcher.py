@@ -116,17 +116,24 @@ class BallCatcherMain:
 ##            self.spi = spidev.SpiDev()
             self.radius = []
 
+            ############
+            self.pposx = 0
+            self.pposy = 0
+            self.cposx = 0
+            self.cposy = 0
+            ###########
+            self.show = True # para mostrar imagen
+            self.text = False # Para mostrar altura
+
 	def initialize_window(self):
 	    cv2.namedWindow("Ball Catcher")
 	    cv2.setMouseCallback("Ball Catcher", self.selectROI)
 
 	def inicio(self):
           
-	    self.vid = self.video.start()
+	    self.vid = self.video.start()  # Inicia el Thread de captura de video
 	    self.initialize_window()
-            #self.video.start() # Inicia el Thread de captura de video
 	    time.sleep(2)		# Permite que la camara se inicialice
-	    # self.run()
 	    self.update()
 
 	def update(self):
@@ -179,7 +186,6 @@ class BallCatcherMain:
                         areap = Mptemp['m00']
                         self.AreaTotalP.append(areap)
                     
-                    #print len(self.contP)
                     for k in range(0,len(self.contC)):
                         Mctemp = cv2.moments(self.contC[k])
                         areac = Mctemp['m00']
@@ -191,12 +197,12 @@ class BallCatcherMain:
                         (xP,yP), radioP = cv2.minEnclosingCircle(self.contP[indP])
                         centerP = (int(xP),int(yP))
                         radioP = int(radioP)
-                        cv2.circle(seg, centerP, radioP, (0,255,0))
-                        self.Mp = cv2.moments(self.contP[indP])
+                        
+                        if self.show:
+                            cv2.circle(seg, centerP, radioP, (0,255,0))
+##                        self.Mp = cv2.moments(self.contP[indP])
                         aP = 3.14*(radioP**2)
-                        if self.Mp['m00'] != 0: 
-##                            cxp = int(self.Mp['m10']/self.Mp['m00'])
-##                            cyp = int(self.Mp['m01']/self.Mp['m00'])
+                        if aP != 0:
                             cxp = int(xP)
                             cyp = int(yP)
                         else:
@@ -210,11 +216,9 @@ class BallCatcherMain:
                     if self.AreaTotalC != []:
                         indC = self.AreaTotalC.index(max(self.AreaTotalC))
                         xC,yC,w,h = cv2.boundingRect(self.contC[indC])
-                        cv2.rectangle(seg, (xC,yC), (xC+w,yC+h), (255,0,0))
-                        Mc = cv2.moments(self.contC[indC])
-                        if Mc['m00'] != 0: 
-##                            cxc = int(Mc['m10']/Mc['m00'])
-##                            cyc = int(Mc['m01']/Mc['m00'])
+                        if self.show:
+                            cv2.rectangle(seg, (xC,yC), (xC+w,yC+h), (255,0,0))
+                        if w != 0:
                             cxc = xC+(w/2)
                             cyc = yC+(h/2)
                         else:
@@ -224,50 +228,22 @@ class BallCatcherMain:
                         cxc = 0
                         cyc = 0
                             
-                        
-                    
-##                    # calculate mass center of the segmented object
-##                    Mp=cv2.moments(openingP)
-##                    Mc=cv2.moments(openingC)
-##                    
-##                    if Mp['m00'] != 0: 
-##                        cxp = int(Mp['m10']/Mp['m00'])
-##                        cyp = int(Mp['m01']/Mp['m00'])
-##                    else:
-##                        cxp = 0
-##                        cyp = 0
-##
-##                    if Mc['m00'] != 0: 
-##                        cxc = int(Mc['m10']/Mc['m00'])
-##                        cyc = int(Mc['m01']/Mc['m00'])
-##                    else:
-##                        cxc = 0
-##                        cyc = 0
-                        
-                    #print'Pelota real:',cxp,cyp
-                    #proceso de normalizacion de eje x y eje y
-##                    pposx = int(254*cxp/self.TamMax_x)
-##                    pposy = int(254*cyp/self.TamMax_y)
-##
-##                    cposx = int(254*cxc/self.TamMax_x)
-##                    cposy = int(254*cyc/self.TamMax_y)
-                    
 
                     if cxp < self.base_x0+1:
                         pposx = 0
                     elif cxp < self.base_x1+1:
-                        pposx = int(254*(cxp-self.base_x0)/(self.base_x1 - self.base_x0))
-                        if pposx < 0:
-                            pposx =  0
+                        self.pposx = int(254*(cxp-self.base_x0)/(self.base_x1 - self.base_x0))
+##                        if pposx < 0:
+##                            pposx =  0
                     else:
                         pposx = 254
 
                     if cyp < self.base_y0+1:
                         pposy = 254
                     elif cyp < self.base_y1+1:
-                        pposy = 254-int(254*(cyp-self.base_y0)/(self.base_y1-self.base_y0))
-                        if pposy < 0:
-                            pposy =  0
+                        self.pposy = 254-int(254*(cyp-self.base_y0)/(self.base_y1-self.base_y0))
+##                        if pposy < 0:
+##                            pposy =  0
                     else:
                         pposy = 0
                
@@ -275,28 +251,29 @@ class BallCatcherMain:
                     if cxc < self.base_x0+1:
                         cposx = 0
                     elif cxc < self.base_x1+1:
-                        cposx = int(254*(cxc-self.base_x0)/abs(self.base_x0 - self.base_x1))
-                        if cposx < 0:
-                            cposx =  0
+                        self.cposx = int(254*(cxc-self.base_x0)/abs(self.base_x0 - self.base_x1))
+##                        if cposx < 0:
+##                            cposx =  0
                     else:
                         cposx = 254
 
                     if cyc < self.base_y0+1:
                         cposy = 254
-                    elif cyp < self.base_y1+1:
-                        cposy = 254-int(254*(cyc-self.base_y0)/abs(self.base_y0-self.base_y1))
-                        if cposy < 0:
-                            cposy =  0
+                    elif cyc < self.base_y1+1:
+                        self.cposy = 254-int(254*(cyc-self.base_y0)/abs(self.base_y0-self.base_y1))
+##                        if cposy < 0:
+##                            cposy =  0
                     else:
                         cposy = 0
-##                    print'P (',pposx,pposy,'),C (',cposx,cposy,')','A ',aP
+##                   print'P (',pposx,pposy,'),C (',cposx,cposy,')','A ',aP
                      
 
+##                    print self.pposx, self.pposy, self.cposx, self.cposy
                     self.ser.write(chr(255))
-                    self.ser.write(chr(pposx))
-                    self.ser.write(chr(pposy))
-                    self.ser.write(chr(cposx))
-                    self.ser.write(chr(cposy))
+                    self.ser.write(chr(self.pposx))
+                    self.ser.write(chr(self.pposy))
+                    self.ser.write(chr(self.cposx))
+                    self.ser.write(chr(self.cposy))
 
 ##                    '''
 ##                    Nuevas lineas para comunicacion SPI
@@ -317,24 +294,32 @@ class BallCatcherMain:
                     else:
                         altura = 170 - 4*548.57/(radioP*2)
                     
-                    cv2.putText(seg, str(altura)+' cm', (5,465), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
+                    if self.text:
+                        cv2.putText(seg, str(altura)+' cm', (5,465), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
                     self.imagen_mostrar = seg
 
                 ## debug para cerrar programa
                 key = cv2.waitKey(1) & 0xFF
                 if key == 27: #esc
-                ## 	No estoy seguro si esto detendra los threads, hay que chequear
                     self.vid.stop()
                     break
                     
                 elif key == 99: # c
                     self.actual = "calibration"
-                elif key == 100:
-                    self.radius.append((centerP, radioP))
-                    print self.radius
-                
+                elif key == 115: # s
+                    if self.show:
+                        self.show = False
+                    else:
+                        self.show = True
+                elif key == 116: # t
+                    if self.text:
+                        self.text = False
+                    else:
+                        self.text = True
                     
-                cv2.imshow("Ball Catcher", self.imagen_mostrar)
+               
+                if self.show:     
+                    cv2.imshow("Ball Catcher", self.imagen_mostrar)
                 self.AreaTotalP = []
                 self.AreaTotalC = []
 
