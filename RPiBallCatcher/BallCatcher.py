@@ -5,12 +5,12 @@ from threading import Thread
 import numpy as np
 import time
 import cv2
-#import serial
+import serial
 
 '''
 Carga de librerias SPI
 '''
-import spidev
+#import spidev
 
 
 ## Version 1.
@@ -103,17 +103,17 @@ class BallCatcherMain:
             self.contC = []
             self.AreaTotalP = []
             self.AreaTotalC = []
-            # self.ser = serial.Serial("/dev/ttyS0", baudrate = 9600,timeout = 0)
-            '''
-            SPI LINEAS NUEVAS
-            MOSI -> GPIO10 (19)                                                                                     
-            MISO -> GPIO09 (21)
-            SCK -> GPIO11  (23)
-            CS tiene 2
-            CE1 -> GPIO07  (26)
-            CE0 -> GPIO08  (24)
-            '''
-            self.spi = spidev.SpiDev()
+            self.ser = serial.Serial("/dev/ttyS0", baudrate = 9600,timeout = 0)
+##            '''
+##            SPI LINEAS NUEVAS
+##            MOSI -> GPIO10 (19)                                                                                     
+##            MISO -> GPIO09 (21)
+##            SCK -> GPIO11  (23)
+##            CS tiene 2
+##            CE1 -> GPIO07  (26)
+##            CE0 -> GPIO08  (24)
+##            '''
+##            self.spi = spidev.SpiDev()
             self.radius = []
 
 	def initialize_window(self):
@@ -292,22 +292,22 @@ class BallCatcherMain:
 ##                    print'P (',pposx,pposy,'),C (',cposx,cposy,')','A ',aP
                      
 
-##                    self.ser.write(chr(255))
-##                    self.ser.write(chr(pposx))
-##                    self.ser.write(chr(pposy))
-##                    self.ser.write(chr(cposx))
-##                    self.ser.write(chr(cposy))
+                    self.ser.write(chr(255))
+                    self.ser.write(chr(pposx))
+                    self.ser.write(chr(pposy))
+                    self.ser.write(chr(cposx))
+                    self.ser.write(chr(cposy))
 
-                    '''
-                    Nuevas lineas para comunicacion SPI
-                    Se abre el puerto, se mandan los datos y se cierra el puerto
-                    Deben enviarse como hexadecimal
-                    '''
-                    self.spi.open(0,0)
-                    ## esto es para que podamos ocupar estos valores por otro lado
-                    self.send = [255,pposx,pposy,cposx,cposy]
-                    resp = self.spi.xfer(self.send)
-                    self.spi.close()
+##                    '''
+##                    Nuevas lineas para comunicacion SPI
+##                    Se abre el puerto, se mandan los datos y se cierra el puerto
+##                    Deben enviarse como hexadecimal
+##                    '''
+##                    self.spi.open(0,0)
+##                    ## esto es para que podamos ocupar estos valores por otro lado
+##                    self.send = [255,pposx,pposy,cposx,cposy]
+##                    resp = self.spi.xfer(self.send)
+##                    self.spi.close()
 
                     cv2.circle(seg, (cxp,cyp), 3, (0,255,0))
                     cv2.circle(seg, (cxc,cyc), 3, (255,0,0))
