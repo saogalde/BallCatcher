@@ -43,7 +43,7 @@ void initBallCatcher(TIM_HandleTypeDef* htimBasal, TIM_HandleTypeDef* htimCentra
 	memset(&motorEjeCentral, 0, sizeof(stepper));
 	memset(&motorEjeBasal, 0, sizeof(stepper));
 	//HAL_TIM_PWM_Start(servoTimer, TIM_CHANNEL_1);
-	BallCatcher_CloseDoor();
+	//BallCatcher_CloseDoor();
 
 	// motor general initialization
 	//Stepper_InitializeHardware(&motorEjeBasal, htimBasal, STEP_CHANNEL_BASAL, M0_1_GPIO_Port, M0_1_Pin, \
@@ -63,7 +63,7 @@ void initBallCatcher(TIM_HandleTypeDef* htimBasal, TIM_HandleTypeDef* htimCentra
 	modprintf("MAX X STEPS: %d, MAX Y STEPS: %d\n", CAPTURE_SIZE_STEPS_X, CAPTURE_SIZE_STEPS_Y);
 	motorEjeBasal.speedSpan = (MOTOR_MAX_PERIOD_COUNTS-MOTOR_MIN_PERIOD_COUNTS);
 	motorEjeCentral.speedSpan = (MOTOR_MAX_PERIOD_COUNTS-MOTOR_MIN_PERIOD_COUNTS);
-	modprintf("SPEEDSPAN X STEPS: %d, SPEEDSPAN Y STEPS: %d\n", motorEjeBasal.speedSpan, motorEjeCentral.speedSpan);
+	//modprintf("SPEEDSPAN X STEPS: %d, SPEEDSPAN Y STEPS: %d\n", motorEjeBasal.speedSpan, motorEjeCentral.speedSpan);
 
 	motorEjeBasal.proportionalTerm = CONTROL_P_X;
 	motorEjeCentral.proportionalTerm = CONTROL_P_Y;
@@ -71,8 +71,8 @@ void initBallCatcher(TIM_HandleTypeDef* htimBasal, TIM_HandleTypeDef* htimCentra
 	__HAL_UART_FLUSH_DRREGISTER(ud);
 	HAL_UART_Receive_DMA(ud, &rxBuffer, 1);
 	HAL_UART_DMAPause(ud);
-	motorEjeBasal.targetPosition = (int)(CAPTURE_SIZE_STEPS_X/2);
-	motorEjeCentral.targetPosition = (int)(CAPTURE_SIZE_STEPS_Y/2);
+	motorEjeBasal.targetPosition = 0;
+	motorEjeCentral.targetPosition = 0;
 
 	// ball catcher general initialization
 	mode = MODE_CALIB;
@@ -115,10 +115,10 @@ void BallCatcher_Controller(stepper* st1, stepper* st2){
 
 void calibrate(){
 	BallCatcher_TurnOffMotorsIT();
-	motorEjeCentral.calib = true;
+	/*motorEjeCentral.calib = true;
 	#ifndef BASE_MOTOR_ONLY
 	motorEjeBasal.calib = true;
-	#endif
+	#endif*/
 	// write to screen "CALIBRANDO \n PONER MOTORES EN HOME"
 	LCD_SendLines("CALIBR: PONER", "MOTORES EN HOME!");
 	HAL_Delay(1200);
@@ -132,9 +132,10 @@ void calibrate(){
 	LCD_SendLines("CALIBR.RASPBERRY", "MOT AL CENTRO...");
 	//motorEjeCentral.targetPosition = (uint32_t)(motorEjeCentral.maxPosition/2);
 	//motorEjeBasal.targetPosition = (uint32_t)(motorEjeBasal.maxPosition/2);
-	motorEjeCentral.targetPosition = 10000;
-	motorEjeBasal.targetPosition = 10000;
-
+	//motorEjeCentral.targetPosition = 1000;
+	//motorEjeBasal.targetPosition = 10000;
+	//motorEjeCentral.targetPosition = (uint32_t)(motorEjeCentral.maxPosition/2);
+	//motorEjeBasal.targetPosition = (uint32_t)(motorEjeBasal.maxPosition/2);
 
 	//motorEjeCentral.targetPosition = (int)(motorEjeCentral.maxPosition);
 	//motorEjeBasal.targetPosition = (int)(motorEjeBasal.maxPosition);
@@ -144,16 +145,16 @@ void calibrate(){
 
 	// wait until center is reached
 	#ifndef BASE_MOTOR_ONLY
-	while(!(Stepper_AtTarget(&motorEjeCentral)) || !(Stepper_AtTarget(&motorEjeBasal)));
+	while(!(Stepper_AtTarget(&motorEjeCentral) & Stepper_AtTarget(&motorEjeBasal)));
 	#else
 	while(!(Stepper_AtTarget(&motorEjeBasal)));
 	#endif
 
-
+	/*
 	motorEjeCentral.calib = false;
 	#ifndef BASE_MOTOR_ONLY
 	motorEjeBasal.calib = false;
-	#endif
+	#endif*/
 	LCD_SendLines("CALIBRACION", "COMPLETA!");
 	//HAL_Delay(1000);
 	LCD_SendLines("LISTO PARA", "CAPTURAR!");
@@ -279,7 +280,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 				x_otherwise_y = true;
 				receiving_pos = false;
 				receiving_cat = true;
-				BallCatcher_SetTargetPosition(req_pos);
+				//BallCatcher_SetTargetPosition(req_pos);
 			}
 		}
 		else if(receiving_cat){
@@ -294,7 +295,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 				x_otherwise_y = true;
 				receiving_pos = false;
 				receiving_cat = false;
-				//BallCatcher_SetCurrentPosition(req_cat);
+				BallCatcher_SetTargetPosition(req_pos);
+				BallCatcher_SetCurrentPosition(req_cat);
 				//modprintf("%d %d %d %d\n", req_pos.x, req_pos.y, req_cat.x, req_cat.y);
 
 			}

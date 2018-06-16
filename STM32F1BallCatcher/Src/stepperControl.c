@@ -18,9 +18,9 @@ uint32_t saturate(int64_t speed){
 }
 
 void changeMicrostepping(stepper* st, stepper_microstep ms){
-	writeStepperPin(st->STPIN_M0,(1&ms));
+	/*writeStepperPin(st->STPIN_M0,(1&ms));
 	writeStepperPin(st->STPIN_M1,(2&ms)>>1);
-	writeStepperPin(st->STPIN_M2,(4&ms)>>2);
+	writeStepperPin(st->STPIN_M2,(4&ms)>>2);*/
 	st->microstepping = ms;
 	/*HAL_GPIO_WritePin(st->STPIN_M0.PIN_PORT, st->STPIN_M0.PIN_NO, (1&ms));
 	HAL_GPIO_WritePin(st->STPIN_M1.PIN_PORT, st->STPIN_M1.PIN_NO, ;
@@ -74,6 +74,10 @@ void Stepper_Disable(stepper* st){
 	writeStepperPin(st->STPIN_EN,RESET);
 }
 
+void Stepper_ChangeDir(stepper* st, FlagStatus status){
+	writeStepperPin(st->STPIN_DIR, status);
+	st->dir = (uint8_t)status;
+}
 
 void Stepper_Controller(stepper* st){
 	stepper_status status = st->status;
@@ -83,9 +87,9 @@ void Stepper_Controller(stepper* st){
 			Stepper_Enable(st);
 			modprintf("PWM_1\n");
 			HAL_TIM_PWM_Start(st->STEP_TIMER, st->STEP_CHANNEL);
-			st->currentStepsSec = st->minStepsSec;
+			/*st->currentStepsSec = st->minStepsSec;
 			st->initialPosition = st->currentPosition;
-			st->accelPrescaler = 2;
+			st->accelPrescaler = 2;*/
 		}
 	}
 	//Stepper_SetTimerByStepsSec(st);
@@ -107,24 +111,17 @@ void Stepper_Controller(stepper* st){
 }
 
 void Stepper_PulseUpdate(stepper* st){
-	static uint8_t c = 0;
-	//modprintf("u%d\n",c++);
-	HAL_GPIO_WritePin(GPIOC, LED_Pin, SET);
-	/*if(st->maxPosition>10000){
-		modprintf("1\n");
-	}
-	else{
-		modprintf("2\n");
-	}*/
 	//switch (st->status & ~(SS_BRAKING|SS_BRAKECORRECTION)){ // masking so we dont loose info about direction
 	switch (st->status){
 	case SS_STARTING:
 		if (st->currentPosition > st->targetPosition){
 			st->status = SS_RUNNING_BACKWARD;
-			writeStepperPin(st->STPIN_DIR, RESET);
+			Stepper_ChangeDir(st,RESET);
+			//writeStepperPin(st->STPIN_DIR, RESET);
 		} else if (st->currentPosition < st->targetPosition){
 			st->status = SS_RUNNING_FORWARD;
-			writeStepperPin(st->STPIN_DIR, SET);
+			Stepper_ChangeDir(st,SET);
+			//writeStepperPin(st->STPIN_DIR, SET);
 		} else if (st->currentPosition == st->targetPosition) {
 			st->status = SS_STOPPED;
 			modprintf("PWM_0\n");
@@ -135,18 +132,21 @@ void Stepper_PulseUpdate(stepper* st){
     case SS_RUNNING_BACKWARD:
     	//modprintf("SS_RUNNING_FORWARD\n");
     	//if(st->calib) st->currentPosition += GetStepDirectionUnit(st);
-    	st->currentPosition += GetStepDirectionUnit(st);
+    	//st->currentPosition += GetStepDirectionUnit(st);
     	//else{
-    		//int64_t newSpeed = saturate((int64_t)(MOTOR_MAX_PERIOD_COUNTS - st->proportionalTerm*(Stepper_RemainingSteps(st))*(st->speedSpan)*0.001F));
-    		//__HAL_TIM_SET_AUTORELOAD(st->STEP_TIMER,newSpeed);
+    	st->minStepsSec = (uint32_t)(st->proportionalTerm*(Stepper_RemainingSteps(st))*(st->speedSpan));
+    	st->currentStepsSec = saturate((int64_t)(MOTOR_MAX_PERIOD_COUNTS - st->proportionalTerm*(Stepper_RemainingSteps(st))*(st->speedSpan)*0.01F));
+    	__HAL_TIM_SET_AUTORELOAD(st->STEP_TIMER,st->currentStepsSec);
     	//}
     	//modprintf("STP: %d\n", Stepper_RemainingSteps(st));
     	if (st->currentPosition > st->targetPosition){
 			st->status = SS_RUNNING_BACKWARD;
-			writeStepperPin(st->STPIN_DIR, RESET);
+			//writeStepperPin(st->STPIN_DIR, RESET);
+			Stepper_ChangeDir(st,RESET);
 		} else if (st->currentPosition < st->targetPosition){
 			st->status = SS_RUNNING_FORWARD;
-			writeStepperPin(st->STPIN_DIR, SET);
+			//writeStepperPin(st->STPIN_DIR, SET);
+			Stepper_ChangeDir(st,SET);
 		} else if (st->currentPosition == st->targetPosition) {
 			st->status = SS_STOPPED;
 			HAL_TIM_PWM_Stop(st->STEP_TIMER, st->STEP_CHANNEL);
@@ -160,7 +160,6 @@ void Stepper_PulseUpdate(stepper* st){
     	}*/
     	break;
 	}
-	HAL_GPIO_WritePin(GPIOC, LED_Pin, RESET);
 }
 
 void Stepper_TurnOnTimer_IT(stepper* st){
@@ -180,7 +179,7 @@ int32_t Stepper_isItBraking(stepper* st){
 int32_t Stepper_RemainingSteps(stepper* st){
 	return (st->targetPosition - st->currentPosition);
 }
-
+/*
 
 void Stepper_SetTimerByStepsSec(stepper* st){
 	//uint32_t timerTicks = STEP_TIMER_CLOCK / step -> currentSPS;
@@ -188,7 +187,7 @@ void Stepper_SetTimerByStepsSec(stepper* st){
 	st->currentStepsSec += st->accelStepsSec*sign;
 	st->STEP_TIMER->Instance->ARR = st->currentStepsSec;
 }
-
+*/
 
 bool Stepper_AtTarget(stepper* st){
 	if(st->currentPosition == st->targetPosition) return true;

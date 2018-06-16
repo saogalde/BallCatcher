@@ -57,25 +57,31 @@ typedef struct{
 	volatile int32_t currentPosition;
 	volatile int32_t targetPosition;
 	uint32_t maxPosition;
+	volatile uint8_t dir;
 
 	// speeds
-	volatile int32_t minStepsSec;
-	volatile int32_t maxStepsSec;
-	volatile int32_t currentStepsSec;
+	volatile uint32_t newSpeed;
+	volatile uint32_t minStepsSec;
+	volatile uint32_t maxStepsSec;
+	volatile uint32_t currentStepsSec;
 	uint32_t speedSpan;
 
 	// accelerations
 	volatile int32_t accelStepsSec;
 	volatile int32_t accelPrescaler;
-	volatile int32_t proportionalTerm;
+	volatile uint32_t proportionalTerm;
 	//volatile int32_t accelStepsSec;
+
+	// debug variables
+	volatile int32_t remainingSteps;
+	volatile int32_t remStepsXspeedSpan;
 
 	// associated hardware
 	TIM_HandleTypeDef* STEP_TIMER;
 	uint16_t STEP_CHANNEL;
-	stepper_pin STPIN_M0;
+	/*stepper_pin STPIN_M0;
 	stepper_pin STPIN_M1;
-	stepper_pin STPIN_M2;
+	stepper_pin STPIN_M2;*/
 	stepper_pin STPIN_EN;
 	stepper_pin STPIN_DIR;
 } stepper;
@@ -90,6 +96,7 @@ int32_t GetStepDirectionUnit(stepper* st);
 void Stepper_SetDefaultConfig(stepper* st, stepper_microstep ms);
 void Stepper_Enable(stepper* st);
 void Stepper_Disable(stepper* st);
+void Stepper_ChangeDir(stepper* st, FlagStatus status);
 void Stepper_TurnOnTimer_IT(stepper* st);
 void Stepper_TurnOffTimer_IT(stepper* st);
 void Stepper_Controller(stepper* st);
