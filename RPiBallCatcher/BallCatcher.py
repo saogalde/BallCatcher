@@ -124,6 +124,11 @@ class BallCatcherMain:
             ###########
             self.show = True # para mostrar imagen
             self.text = False # Para mostrar altura
+            self.altura = 0
+            ###########
+            self.numero = 0
+            ###########
+            self.tiempo_inicial = time.time()
 
 	def initialize_window(self):
 	    cv2.namedWindow("Ball Catcher")
@@ -134,10 +139,14 @@ class BallCatcherMain:
 	    self.vid = self.video.start()  # Inicia el Thread de captura de video
 	    self.initialize_window()
 	    time.sleep(2)		# Permite que la camara se inicialice
+##	    self.run()
 	    self.update()
 
+
 	def update(self):
+            print time.time() - self.tiempo_inicial
             while True:
+                self.tiempo_actual = time.time()
                 self.image = self.vid.read()
                 if self.actual == "base":
                     if self.mouseON:
@@ -290,12 +299,12 @@ class BallCatcherMain:
                     cv2.circle(seg, (cxc,cyc), 3, (255,0,0))
 
                     if radioP < 2:
-                        altura = 170
+                        self.altura = 170
                     else:
-                        altura = 170 - 4*548.57/(radioP*2)
+                        self.altura = 170 - 4*548.57/(radioP*2)
                     
-                    if self.text:
-                        cv2.putText(seg, str(altura)+' cm', (5,465), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
+                    if self.text:                        
+                        cv2.putText(seg, str(self.altura)+' cm', (5,465), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
                     self.imagen_mostrar = seg
 
                 ## debug para cerrar programa
@@ -320,19 +329,23 @@ class BallCatcherMain:
                
                 if self.show:     
                     cv2.imshow("Ball Catcher", self.imagen_mostrar)
+##                print time.time() - self.tiempo_actual
                 self.AreaTotalP = []
                 self.AreaTotalC = []
 
 
 
-##	def run(self):
-##	# Inicia thread de captura de informacion
-##	    t = Thread(target=self.update, args=())
-##	    t.daemon = True
-##	    t.start()
-##	    return self
+	def run(self):
+	# Inicia thread de captura de informacion
+	    t = Thread(target=self.predictivo, args=())
+	    t.daemon = True
+	    t.start()
+	    return self
 
-
+	def predictivo(self):
+            self.numero += 1
+            while True:
+                pass
 
         def selectROI(self, event, x, y, flags, param):
             """
