@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # import the necessary packages
 from picamera.array import PiRGBArray
 from picamera import PiCamera
@@ -80,7 +81,7 @@ class PiVideoStream:
 class BallCatcherMain:
 	def __init__(self, TamMax_x = 640, TamMax_y = 480):
             self.actual = "base"
-            self.video = PiVideoStream()
+            self.video = PiVideoStream(TamMax_x,TamMax_y)
             self.TamMax_x = TamMax_x
             self.TamMax_y = TamMax_y
             self.mouseON = False
@@ -123,13 +124,31 @@ class BallCatcherMain:
             self.cposy = 0
             ###########
             self.show = True # para mostrar imagen
-            self.text = False # Para mostrar altura
+            self.text = True # Para mostrar altura
             self.altura = 0
             ###########
             self.numero = 0
             ###########
             self.tiempo_inicial = time.time()
+            ########## Variables necesarias para predictivo
+            self.largo = 60
+            self.datos_x = np.zeros(self.largo)
+            self.datos_y = np.zeros(self.largo)
+            self.datos_z = np.zeros(self.largo)
+            self.datos_t = np.zeros(self.largo)
+            self.indice = 0
+            self.begin_time = True
+            self.altura_canasta = 10 #consideramos altura de canasta en 10 cm
+            self.cxp = -1
+            self.cyp = -1
+            self.cxpp = -1
+            self.cypp = -1
+            ############ Para guardar datos
+            self.file_number = 4
+            self.radio = 0
 
+
+            
 	def initialize_window(self):
 	    cv2.namedWindow("Ball Catcher")
 	    cv2.setMouseCallback("Ball Catcher", self.selectROI)
@@ -139,14 +158,15 @@ class BallCatcherMain:
 	    self.vid = self.video.start()  # Inicia el Thread de captura de video
 	    self.initialize_window()
 	    time.sleep(2)		# Permite que la camara se inicialice
-##	    self.run()
+	    self.run()
 	    self.update()
 
+## cxp, cyp, altura
 
 	def update(self):
-            print time.time() - self.tiempo_inicial
+            self.tiempo_inicial_1 = time.time()
             while True:
-                self.tiempo_actual = time.time()
+##                self.tiempo_actual_1 = time.time()
                 self.image = self.vid.read()
                 if self.actual == "base":
                     if self.mouseON:
@@ -167,6 +187,8 @@ class BallCatcherMain:
                         #blur = cv2.GaussianBlur(img_hsv,(15,15),0)
                         self.HSV_Roi(self.coords_colP, img_hsv)
                         self.calculateHSV = False
+                        # Tiempo para esperar sacar la pelota despues de calibracion
+                        time.sleep(1)
                         
                     # mask of different colors
                     #blur = cv2.blur(img_hsv,(10,10))
@@ -206,20 +228,22 @@ class BallCatcherMain:
                         (xP,yP), radioP = cv2.minEnclosingCircle(self.contP[indP])
                         centerP = (int(xP),int(yP))
                         radioP = int(radioP)
+                        self.radio = radioP
                         
                         if self.show:
                             cv2.circle(seg, centerP, radioP, (0,255,0))
 ##                        self.Mp = cv2.moments(self.contP[indP])
                         aP = 3.14*(radioP**2)
                         if aP != 0:
-                            cxp = int(xP)
-                            cyp = int(yP)
+                            self.cxp = int(xP)
+                            self.cyp = int(yP)
+                            
                         else:
-                            cxp = 0
-                            cyp = 0
+                            self.cxp = -1
+                            self.cyp = -1
                     else:
-                        cxp = 0
-                        cyp = 0
+                        self.cxp = -1
+                        self.cyp = -1
 
                     
                     if self.AreaTotalC != []:
@@ -236,21 +260,39 @@ class BallCatcherMain:
                     else:
                         cxc = 0
                         cyc = 0
-                            
 
-                    if cxp < self.base_x0+1:
+                    #### Lineas para calcular el radio de la pelota        
+                    if radioP < 2:
+                        self.altura = 170
+                    else:
+##                        self.altura = 168 - 950/(radioP)  ## Low Values
+##                        self.altura = 168 - 1092/(radioP)  ## High Values
+                        self.altura = 168 - 1698/(radioP)  ## High Resolution
+                    
+                    if self.text:                        
+                        cv2.putText(seg, str(self.altura)+' cm', (5,465), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
+                    self.imagen_mostrar = self.image
+                    #self.imagen_mostrar = seg
+
+##                    if self.cxp > 0 and self.cyp > 0:
+##                        print 'x: ',self.cxp,' y: ',self.cyp,' z: ',self.altura
+  
+
+
+
+                    if self.cxpp < self.base_x0+1:
                         pposx = 0
-                    elif cxp < self.base_x1+1:
-                        self.pposx = int(254*(cxp-self.base_x0)/(self.base_x1 - self.base_x0))
+                    elif self.cxpp < self.base_x1+1:
+                        self.pposx = int(254*(self.cxpp-self.base_x0)/(self.base_x1 - self.base_x0))
 ##                        if pposx < 0:
 ##                            pposx =  0
                     else:
                         pposx = 254
 
-                    if cyp < self.base_y0+1:
+                    if self.cypp < self.base_y0+1:
                         pposy = 254
-                    elif cyp < self.base_y1+1:
-                        self.pposy = 254-int(254*(cyp-self.base_y0)/(self.base_y1-self.base_y0))
+                    elif self.cypp < self.base_y1+1:
+                        self.pposy = 254-int(254*(self.cypp-self.base_y0)/(self.base_y1-self.base_y0))
 ##                        if pposy < 0:
 ##                            pposy =  0
                     else:
@@ -295,17 +337,19 @@ class BallCatcherMain:
 ##                    resp = self.spi.xfer(self.send)
 ##                    self.spi.close()
 
-                    cv2.circle(seg, (cxp,cyp), 3, (0,255,0))
-                    cv2.circle(seg, (cxc,cyc), 3, (255,0,0))
+##                    print 'x: ',self.cxpp,' y: ', self.cypp
+                    if 0 < self.cxpp and self.cxpp < self.TamMax_x:
+                        if 0 < self.cypp and self.cypp < self.TamMax_y:
+                            cv2.circle(self.imagen_mostrar, (self.cxpp,self.cypp), 4, (0,0,255), -1)
+                    cv2.circle(self.imagen_mostrar, (self.cxp,self.cyp), 3, (0,255,0), -1)
+                    cv2.circle(self.imagen_mostrar, (cxc,cyc), 3, (255,0,0), -1)
+                    #cv2.circle(self.imagen_mostrar, (int(self.TamMax_x/2),int(self.TamMax_y/2)), 3, (255,0,255), -1)
 
-                    if radioP < 2:
-                        self.altura = 170
-                    else:
-                        self.altura = 170 - 4*548.57/(radioP*2)
-                    
-                    if self.text:                        
-                        cv2.putText(seg, str(self.altura)+' cm', (5,465), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
-                    self.imagen_mostrar = seg
+
+
+
+
+
 
                 ## debug para cerrar programa
                 key = cv2.waitKey(1) & 0xFF
@@ -315,6 +359,8 @@ class BallCatcherMain:
                     
                 elif key == 99: # c
                     self.actual = "calibration"
+                elif key == 100: # d
+                    print self.radio
                 elif key == 115: # s
                     if self.show:
                         self.show = False
@@ -325,6 +371,16 @@ class BallCatcherMain:
                         self.text = False
                     else:
                         self.text = True
+                elif key ==  114: # R
+                    self.largo = 20
+                    self.datos_x = np.zeros(self.largo)
+                    self.datos_y = np.zeros(self.largo)
+                    self.datos_z = np.zeros(self.largo)
+                    self.datos_t = np.zeros(self.largo)
+                    self.indice = 0
+                    self.begin_time = True
+                    self.cxpp = -1
+                    self.cypp = -1
                     
                
                 if self.show:     
@@ -332,6 +388,7 @@ class BallCatcherMain:
 ##                print time.time() - self.tiempo_actual
                 self.AreaTotalP = []
                 self.AreaTotalC = []
+##                print 'total ', time.time() - self.tiempo_inicial_1
 
 
 
@@ -342,10 +399,83 @@ class BallCatcherMain:
 	    t.start()
 	    return self
 
+	def extrapolacion(self, posicion, velocidad, aceleracion, Dt):
+            posicion[0] += velocidad[0]*Dt
+            posicion[1] += velocidad[1]*Dt
+            posicion[2] += velocidad[2]*Dt
+
+            velocidad[0] += aceleracion[0]*Dt
+            velocidad[1] += aceleracion[1]*Dt
+            velocidad[2] += aceleracion[2]*Dt
+
+            return posicion, velocidad
+
+
 	def predictivo(self):
-            self.numero += 1
+            print "entre al thread"
             while True:
-                pass
+                time.sleep(0.005)
+
+            
+               
+            ############## Desde esta linea comenzará el predictivo
+            ############## Pensar idea de paralelizar
+                if self.cxp > 0 and self.cyp > 0:  # Esta condicion es para saber de que entró la pelota al campo de visión
+##                        if self.indice == 0:
+##                            self.tiempo_inicial = time.time()
+##                            self.tiempo_actual = 0
+##                        else:
+##                            # Si no es el tiempo inicial, el tiempo actual se resta con el anterior
+##                            # Por defecto, muestra 1 es 0
+##                            self.tiempo_actual = time.time() - self.tiempo_inicial
+                    '''
+                    Se van guardando los datos con cada iteracion
+                    '''
+                    if self.altura > 0:
+                        self.datos_x[self.indice] = self.cxp
+                        self.datos_y[self.indice] = self.cyp
+                        self.datos_z[self.indice] = self.altura - self.altura_canasta
+                        self.datos_t[self.indice] = time.time() - self.tiempo_inicial_1
+                        
+                    
+                        if self.indice >= 3:
+                            z_mov = np.polyfit(self.datos_t[1:self.indice + 1], self.datos_z[1:self.indice + 1],2)
+                            p_mov = np.poly1d(z_mov)
+                            t_caida = max(p_mov.r)
+                            print "tiempo: ",self.indice, ' ' ,self.datos_t[1:self.indice + 1]
+                            print "altura: ",self.indice, ' ' ,self.datos_z[1:self.indice + 1]
+                            print "coefic: ", self.indice, ' ', p_mov
+                            print "tfinal: ", self.indice, ' ', t_caida
+                            print 'fit z ', time.time() - self.tiempo_inicial_1
+
+                            ## Velocidad en x
+                            x_mov = np.polyfit(self.datos_t[1:self.indice + 1], self.datos_x[1:self.indice + 1],1)
+                            x_fin = np.poly1d(x_mov)
+                            
+                            self.cxpp = int(round(x_fin(t_caida)))
+
+                            ## Velocidad en y
+                            y_mov = np.polyfit(self.datos_t[1:self.indice + 1], self.datos_y[1:self.indice + 1],1)
+                            y_fin = np.poly1d(y_mov)
+                            self.cypp = int(round(y_fin(t_caida)))
+
+                    else:
+                        
+                        print "@@@@@@@@@@@@@@@@@"
+ 
+                    # aumentamos el indice
+                    if self.altura > 0:
+                        self.indice += 1
+
+                    if self.indice >= self.largo:
+                        self.file_number += 1 
+                        name_file = 'lanzamiento' + str(self.file_number) + '.txt'
+                        with open(name_file,'w') as archivo:
+                            archivo.write("x,y,z,t\n")
+                            for i in range(self.largo):
+                                archivo.write(str(self.datos_x[i])+','+str(self.datos_y[i])+','+str(self.datos_z[i])+','+str(self.datos_t[i])+'\n')
+                        self.indice = 0
+                       
 
         def selectROI(self, event, x, y, flags, param):
             """
@@ -413,11 +543,28 @@ class BallCatcherMain:
 	    self.VMinC = int(0)
 
 
+class RingBuffer():
+    "A 1D ring buffer using numpy arrays"
+    def __init__(self, length):
+        self.data = np.zeros(length, dtype='f')
+        self.index = 0
+
+    def extend(self, x):
+        "adds array x to ring buffer"
+        x_index = (self.index + np.arange(x.size)) % self.data.size
+        self.data[x_index] = x
+        self.index = x_index[-1] + 1
+
+    def get(self):
+        "Returns the first-in-first-out data in the ring buffer"
+        idx = (self.index + np.arange(self.data.size)) %self.data.size
+        return self.data[idx]
 
 
 
 if __name__=='__main__':
-
-	main = BallCatcherMain()
+        Tam_x = 960
+        Tam_y = 720
+	main = BallCatcherMain(Tam_x,Tam_y)
 	main.inicio()
 	cv2.destroyAllWindows()
