@@ -2,11 +2,13 @@
 # import the necessary packages
 from picamera.array import PiRGBArray
 from picamera import PiCamera
-from threading import Thread
+from threading import Thread, Event
 import numpy as np
 import time
 import cv2
 import serial
+
+globalEvent = Event()
 
 '''
 Carga de librerias SPI
@@ -22,12 +24,19 @@ Se le incluye soporte para SPI
 
 
 class PiVideoStream:
-    def __init__(self, TamMax_x = 640, TamMax_y = 480, framerate=32):
+    def __init__(self, TamMax_x = 640, TamMax_y = 480, framerate=60):
 	# initialize the camera and stream
         resolution = (TamMax_x, TamMax_y)
         self.camera = PiCamera()
         self.camera.resolution = resolution
         self.camera.framerate = framerate
+        self.camera.exposure_mode = 'sports'
+        #self.camera.awb_mode = 'fluorescent'
+        #g = self.camera.awb_gains
+        #self.camera.awb_mode = 'off'
+        #self.camera.awb_gains = g
+        self.camera.shutter_speed = 6000
+        
         ##############
         #self.camera.iso = 100
         #self.camera.shutter_speed = self.camera.exposure_speed
@@ -71,7 +80,7 @@ class PiVideoStream:
     def read(self):
 	# return the frame most recently read
 	return self.frame
-
+ 
     def stop(self):
 	# indicate that the thread should be stopped
 	self.stopped = True
@@ -131,7 +140,7 @@ class BallCatcherMain:
             ###########
             self.tiempo_inicial = time.time()
             ########## Variables necesarias para predictivo
-            self.largo = 60
+            self.largo = 20
             self.datos_x = np.zeros(self.largo)
             self.datos_y = np.zeros(self.largo)
             self.datos_z = np.zeros(self.largo)
@@ -144,7 +153,7 @@ class BallCatcherMain:
             self.cxpp = -1
             self.cypp = -1
             ############ Para guardar datos
-            self.file_number = 4
+            self.file_number = 0
             self.radio = 0
 
 
@@ -159,14 +168,17 @@ class BallCatcherMain:
 	    self.initialize_window()
 	    time.sleep(2)		# Permite que la camara se inicialice
 	    self.run()
+	    #self.update()
+	    self.tiempo_inicial_1 = time.time()
 	    self.update()
+	    #self.reductionThread = Thread(target=self.update)
+	    #self.reductionThread.start()
 
 ## cxp, cyp, altura
 
 	def update(self):
-            self.tiempo_inicial_1 = time.time()
             while True:
-##                self.tiempo_actual_1 = time.time()
+    ##              self.tiempo_actual_1 = time.time()
                 self.image = self.vid.read()
                 if self.actual == "base":
                     if self.mouseON:
@@ -232,7 +244,7 @@ class BallCatcherMain:
                         
                         if self.show:
                             cv2.circle(seg, centerP, radioP, (0,255,0))
-##                        self.Mp = cv2.moments(self.contP[indP])
+                           # self.Mp = cv2.moments(self.contP[indP])
                         aP = 3.14*(radioP**2)
                         if aP != 0:
                             self.cxp = int(xP)
@@ -265,18 +277,18 @@ class BallCatcherMain:
                     if radioP < 2:
                         self.altura = 170
                     else:
-##                        self.altura = 168 - 950/(radioP)  ## Low Values
-##                        self.altura = 168 - 1092/(radioP)  ## High Values
+    ##                        self.altura = 168 - 950/(radioP)  ## Low Values
+    ##                        self.altura = 168 - 1092/(radioP)  ## High Values
                         self.altura = 168 - 1698/(radioP)  ## High Resolution
                     
                     if self.text:                        
-                        cv2.putText(seg, str(self.altura)+' cm', (5,465), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
-                    self.imagen_mostrar = self.image
-                    #self.imagen_mostrar = seg
+                        cv2.putText(seg, str(self.altura)+' cm', (5,self.TamMax_y-10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
+                    #self.imagen_mostrar = self.image
+                    self.imagen_mostrar = seg
 
-##                    if self.cxp > 0 and self.cyp > 0:
-##                        print 'x: ',self.cxp,' y: ',self.cyp,' z: ',self.altura
-  
+    ##                    if self.cxp > 0 and self.cyp > 0:
+    ##                        print 'x: ',self.cxp,' y: ',self.cyp,' z: ',self.altura
+
 
 
 
@@ -284,8 +296,8 @@ class BallCatcherMain:
                         pposx = 0
                     elif self.cxpp < self.base_x1+1:
                         self.pposx = int(254*(self.cxpp-self.base_x0)/(self.base_x1 - self.base_x0))
-##                        if pposx < 0:
-##                            pposx =  0
+    ##                        if pposx < 0:
+    ##                            pposx =  0
                     else:
                         pposx = 254
 
@@ -293,8 +305,8 @@ class BallCatcherMain:
                         pposy = 254
                     elif self.cypp < self.base_y1+1:
                         self.pposy = 254-int(254*(self.cypp-self.base_y0)/(self.base_y1-self.base_y0))
-##                        if pposy < 0:
-##                            pposy =  0
+    ##                        if pposy < 0:
+    ##                            pposy =  0
                     else:
                         pposy = 0
                
@@ -303,8 +315,8 @@ class BallCatcherMain:
                         cposx = 0
                     elif cxc < self.base_x1+1:
                         self.cposx = int(254*(cxc-self.base_x0)/abs(self.base_x0 - self.base_x1))
-##                        if cposx < 0:
-##                            cposx =  0
+    ##                        if cposx < 0:
+    ##                            cposx =  0
                     else:
                         cposx = 254
 
@@ -312,39 +324,39 @@ class BallCatcherMain:
                         cposy = 254
                     elif cyc < self.base_y1+1:
                         self.cposy = 254-int(254*(cyc-self.base_y0)/abs(self.base_y0-self.base_y1))
-##                        if cposy < 0:
-##                            cposy =  0
+    ##                        if cposy < 0:
+    ##                            cposy =  0
                     else:
                         cposy = 0
-##                   print'P (',pposx,pposy,'),C (',cposx,cposy,')','A ',aP
+    ##                   print'P (',pposx,pposy,'),C (',cposx,cposy,')','A ',aP
                      
 
-##                    print self.pposx, self.pposy, self.cposx, self.cposy
+    ##                    print self.pposx, self.pposy, self.cposx, self.cposy
                     self.ser.write(chr(255))
                     self.ser.write(chr(self.pposx))
                     self.ser.write(chr(self.pposy))
                     self.ser.write(chr(self.cposx))
                     self.ser.write(chr(self.cposy))
 
-##                    '''
-##                    Nuevas lineas para comunicacion SPI
-##                    Se abre el puerto, se mandan los datos y se cierra el puerto
-##                    Deben enviarse como hexadecimal
-##                    '''
-##                    self.spi.open(0,0)
-##                    ## esto es para que podamos ocupar estos valores por otro lado
-##                    self.send = [255,pposx,pposy,cposx,cposy]
-##                    resp = self.spi.xfer(self.send)
-##                    self.spi.close()
+    ##                    '''
+    ##                    Nuevas lineas para comunicacion SPI
+    ##                    Se abre el puerto, se mandan los datos y se cierra el puerto
+    ##                    Deben enviarse como hexadecimal
+    ##                    '''
+    ##                    self.spi.open(0,0)
+    ##                    ## esto es para que podamos ocupar estos valores por otro lado
+    ##                    self.send = [255,pposx,pposy,cposx,cposy]
+    ##                    resp = self.spi.xfer(self.send)
+    ##                    self.spi.close()
 
-##                    print 'x: ',self.cxpp,' y: ', self.cypp
+    ##                    print 'x: ',self.cxpp,' y: ', self.cypp
                     if 0 < self.cxpp and self.cxpp < self.TamMax_x:
                         if 0 < self.cypp and self.cypp < self.TamMax_y:
                             cv2.circle(self.imagen_mostrar, (self.cxpp,self.cypp), 4, (0,0,255), -1)
                     cv2.circle(self.imagen_mostrar, (self.cxp,self.cyp), 3, (0,255,0), -1)
                     cv2.circle(self.imagen_mostrar, (cxc,cyc), 3, (255,0,0), -1)
                     #cv2.circle(self.imagen_mostrar, (int(self.TamMax_x/2),int(self.TamMax_y/2)), 3, (255,0,255), -1)
-
+                    globalEvent.set()
 
 
 
@@ -354,8 +366,10 @@ class BallCatcherMain:
                 ## debug para cerrar programa
                 key = cv2.waitKey(1) & 0xFF
                 if key == 27: #esc
-                    self.vid.stop()
-                    break
+					g = self.video.camera.awb_gains
+					print g
+					self.vid.stop()
+					break
                     
                 elif key == 99: # c
                     self.actual = "calibration"
@@ -385,10 +399,11 @@ class BallCatcherMain:
                
                 if self.show:     
                     cv2.imshow("Ball Catcher", self.imagen_mostrar)
-##                print time.time() - self.tiempo_actual
+    ##                print time.time() - self.tiempo_actual
                 self.AreaTotalP = []
                 self.AreaTotalC = []
-##                print 'total ', time.time() - self.tiempo_inicial_1
+    ##                print 'total ', time.time() - self.tiempo_inicial_1
+                
 
 
 
@@ -412,22 +427,18 @@ class BallCatcherMain:
 
 
 	def predictivo(self):
-            print "entre al thread"
             while True:
-                time.sleep(0.005)
-
-            
-               
+                globalEvent.wait()
             ############## Desde esta linea comenzará el predictivo
             ############## Pensar idea de paralelizar
                 if self.cxp > 0 and self.cyp > 0:  # Esta condicion es para saber de que entró la pelota al campo de visión
-##                        if self.indice == 0:
-##                            self.tiempo_inicial = time.time()
-##                            self.tiempo_actual = 0
-##                        else:
-##                            # Si no es el tiempo inicial, el tiempo actual se resta con el anterior
-##                            # Por defecto, muestra 1 es 0
-##                            self.tiempo_actual = time.time() - self.tiempo_inicial
+    ##                        if self.indice == 0:
+    ##                            self.tiempo_inicial = time.time()
+    ##                            self.tiempo_actual = 0
+    ##                        else:
+    ##                            # Si no es el tiempo inicial, el tiempo actual se resta con el anterior
+    ##                            # Por defecto, muestra 1 es 0
+    ##                            self.tiempo_actual = time.time() - self.tiempo_inicial
                     '''
                     Se van guardando los datos con cada iteracion
                     '''
@@ -462,7 +473,7 @@ class BallCatcherMain:
                     else:
                         
                         print "@@@@@@@@@@@@@@@@@"
- 
+
                     # aumentamos el indice
                     if self.altura > 0:
                         self.indice += 1
@@ -475,6 +486,7 @@ class BallCatcherMain:
                             for i in range(self.largo):
                                 archivo.write(str(self.datos_x[i])+','+str(self.datos_y[i])+','+str(self.datos_z[i])+','+str(self.datos_t[i])+'\n')
                         self.indice = 0
+                globalEvent.clear()
                        
 
         def selectROI(self, event, x, y, flags, param):
@@ -563,8 +575,8 @@ class RingBuffer():
 
 
 if __name__=='__main__':
-        Tam_x = 960
-        Tam_y = 720
-	main = BallCatcherMain(Tam_x,Tam_y)
-	main.inicio()
-	cv2.destroyAllWindows()
+    Tam_x = 640
+    Tam_y = 480
+    main = BallCatcherMain(Tam_x,Tam_y)
+    main.inicio()
+    cv2.destroyAllWindows()
