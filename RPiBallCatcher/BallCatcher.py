@@ -24,96 +24,96 @@ Se le incluye soporte para SPI
 
 
 class PiVideoStream:
-    def __init__(self, TamMax_x = 640, TamMax_y = 480, framerate=60):
-	# initialize the camera and stream
-        resolution = (TamMax_x, TamMax_y)
-        self.camera = PiCamera()
-        self.camera.resolution = resolution
-        self.camera.framerate = framerate
-        self.camera.exposure_mode = 'sports'
-        #self.camera.awb_mode = 'fluorescent'
-        #g = self.camera.awb_gains
-        #self.camera.awb_mode = 'off'
-        #self.camera.awb_gains = g
-        self.camera.shutter_speed = 6000
+	def __init__(self, TamMax_x = 640, TamMax_y = 480, framerate=60):
+		# initialize the camera and stream
+		resolution = (TamMax_x, TamMax_y)
+		self.camera = PiCamera()
+		self.camera.resolution = resolution
+		self.camera.framerate = framerate
+		self.camera.exposure_mode = 'sports'
+		#self.camera.awb_mode = 'fluorescent'
+		#g = self.camera.awb_gains
+		#self.camera.awb_mode = 'off'
+		#self.camera.awb_gains = g
+		self.camera.shutter_speed = 6000
         
-        ##############
-        #self.camera.iso = 100
-        #self.camera.shutter_speed = self.camera.exposure_speed
-        #self.camera.exposure_mode = 'off'
-        #g = self.camera.awb_gains
-        #self.camera.awb_mode = 'off'
-        #self.camera.awb_gains = g
-        ##############
-        self.rawCapture = PiRGBArray(self.camera, size=resolution)
-        self.stream = self.camera.capture_continuous(self.rawCapture,
+		##############
+		#self.camera.iso = 100
+		#self.camera.shutter_speed = self.camera.exposure_speed
+		#self.camera.exposure_mode = 'off'
+		#g = self.camera.awb_gains
+		#self.camera.awb_mode = 'off'
+		#self.camera.awb_gains = g
+		##############
+		self.rawCapture = PiRGBArray(self.camera, size=resolution)
+		self.stream = self.camera.capture_continuous(self.rawCapture,
                         format="bgr", use_video_port=True)
 
-        # initialize the frame and the variable used to indicate
-        # if the thread should be stopped
-        self.frame = None
-        self.stopped = False
+		# initialize the frame and the variable used to indicate
+		# if the thread should be stopped
+		self.frame = None
+		self.stopped = False
 
-    def start(self):
+	def start(self):
 	# start the thread to read frames from the video stream
-        t = Thread(target=self.update, args=())
-        t.daemon = True
-        t.start()
-        return self
+		t = Thread(target=self.update, args=())
+		t.daemon = True
+		t.start()
+		return self
 
-    def update(self):
+	def update(self):
 	# keep looping infinitely until the thread is stopped
-        for f in self.stream:
-            # grab the frame from the stream and clear the stream in
-            # preparation for the next frame
-            self.frame = f.array
-            self.rawCapture.truncate(0)
+		for f in self.stream:
+			# grab the frame from the stream and clear the stream in
+			# preparation for the next frame
+			self.frame = f.array
+			self.rawCapture.truncate(0)
 
-            # if the thread indicator variable is set, stop the thread
-            # and resource camera resources
-            if self.stopped:
-                self.stream.close()
-                self.rawCapture.close()
-                self.camera.close()
-                return
+			# if the thread indicator variable is set, stop the thread
+			# and resource camera resources
+			if self.stopped:
+				self.stream.close()
+				self.rawCapture.close()
+				self.camera.close()
+				return
 
-    def read(self):
-	# return the frame most recently read
-	return self.frame
+	def read(self):
+		# return the frame most recently read
+		return self.frame
  
-    def stop(self):
-	# indicate that the thread should be stopped
-	self.stopped = True
+	def stop(self):
+		# indicate that the thread should be stopped
+		self.stopped = True
 
 
 
 class BallCatcherMain:
 	def __init__(self, TamMax_x = 640, TamMax_y = 480):
-            self.actual = "base"
-            self.video = PiVideoStream(TamMax_x,TamMax_y)
-            self.TamMax_x = TamMax_x
-            self.TamMax_y = TamMax_y
-            self.mouseON = False
-            self.calculateHSV = False
-            self.coords_colP = [(0,0),(1,1)]
-            self.rect = []
-            self.HMinP = 0
-            self.SMinP = 0
-            self.VMinP = 0
-            self.HMaxP = 255
-            self.SMaxP = 255
-            self.VMaxP = 255
-            self.HMinC = 0
-            self.SMinC = 0
-            self.VMinC = 0
-            self.HMaxC = 255
-            self.SMaxC = 255
-            self.VMaxC = 255
-            self.contP = []
-            self.contC = []
-            self.AreaTotalP = []
-            self.AreaTotalC = []
-            self.ser = serial.Serial("/dev/ttyS0", baudrate = 9600,timeout = 0)
+		self.actual = "base"
+		self.video = PiVideoStream(TamMax_x,TamMax_y)
+		self.TamMax_x = TamMax_x
+		self.TamMax_y = TamMax_y
+		self.mouseON = False
+		self.calculateHSV = False
+		self.coords_colP = [(0,0),(1,1)]
+		self.rect = []
+		self.HMinP = 0
+		self.SMinP = 0
+		self.VMinP = 0
+		self.HMaxP = 255
+		self.SMaxP = 255
+		self.VMaxP = 255
+		self.HMinC = 0
+		self.SMinC = 0
+		self.VMinC = 0
+		self.HMaxC = 255
+		self.SMaxC = 255
+		self.VMaxC = 255
+		self.contP = []
+		self.contC = []
+		self.AreaTotalP = []
+		self.AreaTotalC = []
+		self.ser = serial.Serial("/dev/ttyS0", baudrate = 9600,timeout = 0)
 ##            '''
 ##            SPI LINEAS NUEVAS
 ##            MOSI -> GPIO10 (19)                                                                                     
@@ -124,219 +124,216 @@ class BallCatcherMain:
 ##            CE0 -> GPIO08  (24)
 ##            '''
 ##            self.spi = spidev.SpiDev()
-            self.radius = []
+		self.radius = []
 
-            ############
-            self.pposx = 0
-            self.pposy = 0
-            self.cposx = 0
-            self.cposy = 0
-            ###########
-            self.show = True # para mostrar imagen
-            self.text = True # Para mostrar altura
-            self.altura = 0
-            ###########
-            self.numero = 0
-            ###########
-            self.tiempo_inicial = time.time()
-            ########## Variables necesarias para predictivo
-            self.largo = 20
-            self.datos_x = np.zeros(self.largo)
-            self.datos_y = np.zeros(self.largo)
-            self.datos_z = np.zeros(self.largo)
-            self.datos_t = np.zeros(self.largo)
-            self.indice = 0
-            self.begin_time = True
-            self.altura_canasta = 10 #consideramos altura de canasta en 10 cm
-            self.cxp = -1
-            self.cyp = -1
-            self.cxpp = -1
-            self.cypp = -1
-            ############ Para guardar datos
-            self.file_number = 0
-            self.radio = 0
+		############
+		self.pposx = 0
+		self.pposy = 0
+		self.cposx = 0
+		self.cposy = 0
+		###########
+		self.show = True # para mostrar imagen
+		self.text = True # Para mostrar altura
+		self.altura = 0
+		###########
+		self.numero = 0
+		###########
+		self.tiempo_inicial = time.time()
+		########## Variables necesarias para predictivo
+		self.largo = 20
+		self.datos_x = np.zeros(self.largo)
+		self.datos_y = np.zeros(self.largo)
+		self.datos_z = np.zeros(self.largo)
+		self.datos_t = np.zeros(self.largo)
+		self.indice = 0
+		self.begin_time = True
+		self.altura_canasta = 10 #consideramos altura de canasta en 10 cm
+		self.cxp = -1
+		self.cyp = -1
+		self.cxpp = -1
+		self.cypp = -1
+		############ Para guardar datos
+		self.file_number = 0
+		self.radio = 0
 
 
             
 	def initialize_window(self):
-	    cv2.namedWindow("Ball Catcher")
-	    cv2.setMouseCallback("Ball Catcher", self.selectROI)
+		cv2.namedWindow("Ball Catcher")
+		cv2.setMouseCallback("Ball Catcher", self.selectROI)
 
-	def inicio(self):
-          
-	    self.vid = self.video.start()  # Inicia el Thread de captura de video
-	    self.initialize_window()
-	    time.sleep(2)		# Permite que la camara se inicialice
-	    self.run()
-	    #self.update()
-	    self.tiempo_inicial_1 = time.time()
-	    self.update()
-	    #self.reductionThread = Thread(target=self.update)
-	    #self.reductionThread.start()
+	def inicio(self):          
+		self.vid = self.video.start()  # Inicia el Thread de captura de video
+		self.initialize_window()
+		time.sleep(2)		# Permite que la camara se inicialice
+		self.run()
+		#self.update()
+		self.tiempo_inicial_1 = time.time()
+		self.update()
+		#self.reductionThread = Thread(target=self.update)
+		#self.reductionThread.start()
 
-## cxp, cyp, altura
 
 	def update(self):
-            while True:
+		while True:
+			
     ##              self.tiempo_actual_1 = time.time()
-                self.image = self.vid.read()
-                if self.actual == "base":
-                    if self.mouseON:
-                        cv2.rectangle(self.image, self.coords_colP[0], self.rect[0], (0, 255, 0), 2)
-                    self.imagen_mostrar = self.image
-                    #cv2.imshow("Ball Catcher", self.imagen_mostrar)
+			self.image = self.vid.read()
+			if self.actual == "base":
+				if self.mouseON:
+					cv2.rectangle(self.image, self.coords_colP[0], self.rect[0], (0, 255, 0), 2)
+				self.imagen_mostrar = self.image
+				#cv2.imshow("Ball Catcher", self.imagen_mostrar)
                     
-                elif self.actual == "calibration":
+			elif self.actual == "calibration":
+				if self.mouseON:
+					cv2.rectangle(self.image, self.coords_colP[0], self.rect[0], (0, 255, 0), 2)
+				self.imagen_mostrar = self.image
+				#cv2.imshow("Ball Catcher", self.imagen_mostrar)
 
-                    if self.mouseON:
-                        cv2.rectangle(self.image, self.coords_colP[0], self.rect[0], (0, 255, 0), 2)
-                    self.imagen_mostrar = self.image
-                    #cv2.imshow("Ball Catcher", self.imagen_mostrar)
-
-                elif self.actual == "reconocimiento":
-                    img_hsv = cv2.cvtColor(self.image, cv2.COLOR_BGR2HSV)
-                    if self.calculateHSV:
-                        #blur = cv2.GaussianBlur(img_hsv,(15,15),0)
-                        self.HSV_Roi(self.coords_colP, img_hsv)
-                        self.calculateHSV = False
-                        # Tiempo para esperar sacar la pelota despues de calibracion
-                        time.sleep(1)
-                        
-                    # mask of different colors
-                    #blur = cv2.blur(img_hsv,(10,10))
-                    #maskp = cv2.inRange(blur, np.array([self.HMinP,self.SMinP,self.VMinP]), np.array([self.HMaxP,self.SMaxP,self.VMaxP]))
-                    #maskc = cv2.inRange(blur, np.array([self.HMinC,self.SMinC,self.VMinC]), np.array([self.HMaxC,self.SMaxC,self.VMaxC]))
-                    maskp = cv2.inRange(img_hsv, np.array([self.HMinP,self.SMinP,self.VMinP]), np.array([self.HMaxP,self.SMaxP,self.VMaxP]))
-                    maskc = cv2.inRange(img_hsv, np.array([self.HMinC,self.SMinC,self.VMinC]), np.array([self.HMaxC,self.SMaxC,self.VMaxC]))
+			elif self.actual == "reconocimiento":
+				tic = time.time()
+				print "\tInicio Reconocimiento"
+				img_hsv = cv2.cvtColor(self.image, cv2.COLOR_BGR2HSV)
+				if self.calculateHSV:
+					#blur = cv2.GaussianBlur(img_hsv,(15,15),0)
+					self.HSV_Roi(self.coords_colP, img_hsv)
+					self.calculateHSV = False
+					# Tiempo para esperar sacar la pelota despues de calibracion
+					time.sleep(1)
+				# mask of different colors
+				#blur = cv2.blur(img_hsv,(10,10))
+				#maskp = cv2.inRange(blur, np.array([self.HMinP,self.SMinP,self.VMinP]), np.array([self.HMaxP,self.SMaxP,self.VMaxP]))
+				#maskc = cv2.inRange(blur, np.array([self.HMinC,self.SMinC,self.VMinC]), np.array([self.HMaxC,self.SMaxC,self.VMaxC]))
+				maskp = cv2.inRange(img_hsv, np.array([self.HMinP,self.SMinP,self.VMinP]), np.array([self.HMaxP,self.SMaxP,self.VMaxP]))
+				maskc = cv2.inRange(img_hsv, np.array([self.HMinC,self.SMinC,self.VMinC]), np.array([self.HMaxC,self.SMaxC,self.VMaxC]))
                     
-                    # Noise Filter (erosion and dilation)
-                    #kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))
-                    #openingP = cv2.morphologyEx(maskp, cv2.MORPH_OPEN, kernel)
-                    #openingC = cv2.morphologyEx(maskc, cv2.MORPH_OPEN, kernel)
-                    #maskTotal = openingP + openingC
-                    maskTotal = maskp + maskc
+				# Noise Filter (erosion and dilation)
+				#kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))
+				#openingP = cv2.morphologyEx(maskp, cv2.MORPH_OPEN, kernel)
+				#openingC = cv2.morphologyEx(maskc, cv2.MORPH_OPEN, kernel)
+				#maskTotal = openingP + openingC
+				maskTotal = maskp + maskc
                             
-                    seg = cv2.bitwise_and(self.image,self.image,mask=maskTotal) ## Chequear esta linea
+				seg = cv2.bitwise_and(self.image,self.image,mask=maskTotal) ## Chequear esta linea
 
-                    #_, self.contP,_ = cv2.findContours(openingP, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE) # todos los contornos sin orden de jerarquia, solo extremos de un segmento
-                    #_, self.contC,_ = cv2.findContours(openingC, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE) # todos los contornos sin orden de jerarquia, solo extremos de un segmento
+				#_, self.contP,_ = cv2.findContours(openingP, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE) # todos los contornos sin orden de jerarquia, solo extremos de un segmento
+				#_, self.contC,_ = cv2.findContours(openingC, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE) # todos los contornos sin orden de jerarquia, solo extremos de un segmento
 
-                    _, self.contP,_ = cv2.findContours(maskp, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE) # todos los contornos sin orden de jerarquia, solo extremos de un segmento
-                    _, self.contC,_ = cv2.findContours(maskc, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+				_, self.contP,_ = cv2.findContours(maskp, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE) # todos los contornos sin orden de jerarquia, solo extremos de un segmento
+				_, self.contC,_ = cv2.findContours(maskc, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
                     
-                    for k in range(0,len(self.contP)):
-                        Mptemp = cv2.moments(self.contP[k])
-                        areap = Mptemp['m00']
-                        self.AreaTotalP.append(areap)
+				for k in range(0,len(self.contP)):
+					Mptemp = cv2.moments(self.contP[k])
+					areap = Mptemp['m00']
+					self.AreaTotalP.append(areap)
                     
-                    for k in range(0,len(self.contC)):
-                        Mctemp = cv2.moments(self.contC[k])
-                        areac = Mctemp['m00']
-                        self.AreaTotalC.append(areac)
+				for k in range(0,len(self.contC)):
+					Mctemp = cv2.moments(self.contC[k])
+					areac = Mctemp['m00']
+					self.AreaTotalC.append(areac)
 
-                    if self.AreaTotalP != []:
+				if self.AreaTotalP != []:
+					                       
+					indP = self.AreaTotalP.index(max(self.AreaTotalP))
+					(xP,yP), radioP = cv2.minEnclosingCircle(self.contP[indP])
+					centerP = (int(xP),int(yP))
+					radioP = int(radioP)
+					self.radio = radioP
                         
-                        indP = self.AreaTotalP.index(max(self.AreaTotalP))
-                        (xP,yP), radioP = cv2.minEnclosingCircle(self.contP[indP])
-                        centerP = (int(xP),int(yP))
-                        radioP = int(radioP)
-                        self.radio = radioP
-                        
-                        if self.show:
-                            cv2.circle(seg, centerP, radioP, (0,255,0))
-                           # self.Mp = cv2.moments(self.contP[indP])
-                        aP = 3.14*(radioP**2)
-                        if aP != 0:
-                            self.cxp = int(xP)
-                            self.cyp = int(yP)
+					if self.show:
+						cv2.circle(seg, centerP, radioP, (0,255,0))
+						# self.Mp = cv2.moments(self.contP[indP])
+					aP = 3.14*(radioP**2)
+					if aP != 0:
+						self.cxp = int(xP)
+						self.cyp = int(yP)
                             
-                        else:
-                            self.cxp = -1
-                            self.cyp = -1
-                    else:
-                        self.cxp = -1
-                        self.cyp = -1
+					else:
+						self.cxp = -1
+						self.cyp = -1
+				else:
+					self.cxp = -1
+					self.cyp = -1
 
                     
-                    if self.AreaTotalC != []:
-                        indC = self.AreaTotalC.index(max(self.AreaTotalC))
-                        xC,yC,w,h = cv2.boundingRect(self.contC[indC])
-                        if self.show:
-                            cv2.rectangle(seg, (xC,yC), (xC+w,yC+h), (255,0,0))
-                        if w != 0:
-                            cxc = xC+(w/2)
-                            cyc = yC+(h/2)
-                        else:
-                            cxc = 0
-                            cyc = 0
-                    else:
-                        cxc = 0
-                        cyc = 0
+				if self.AreaTotalC != []:
+					indC = self.AreaTotalC.index(max(self.AreaTotalC))
+					xC,yC,w,h = cv2.boundingRect(self.contC[indC])
+					if self.show:
+						cv2.rectangle(seg, (xC,yC), (xC+w,yC+h), (255,0,0))
+					if w != 0:
+						cxc = xC+(w/2)
+						cyc = yC+(h/2)
+					else:
+						cxc = 0
+						cyc = 0
+				else:
+					cxc = 0
+					cyc = 0
 
-                    #### Lineas para calcular el radio de la pelota        
-                    if radioP < 2:
-                        self.altura = 170
-                    else:
-    ##                        self.altura = 168 - 950/(radioP)  ## Low Values
-    ##                        self.altura = 168 - 1092/(radioP)  ## High Values
-                        self.altura = 168 - 1698/(radioP)  ## High Resolution
+				#### Lineas para calcular el radio de la pelota        
+				if radioP < 2:
+					self.altura = 170
+				else:
+					#self.altura = 168 - 950/(radioP)  ## Low Values
+					#self.altura = 168 - 1092/(radioP)  ## High Values
+					self.altura = 168 - 1698/(radioP)  ## High Resolution
                     
-                    if self.text:                        
-                        cv2.putText(seg, str(self.altura)+' cm', (5,self.TamMax_y-10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
-                    #self.imagen_mostrar = self.image
-                    self.imagen_mostrar = seg
+				if self.text:                        
+					cv2.putText(seg, str(self.altura)+' cm', (5,self.TamMax_y-10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
+				#self.imagen_mostrar = self.image
+				self.imagen_mostrar = seg
 
     ##                    if self.cxp > 0 and self.cyp > 0:
     ##                        print 'x: ',self.cxp,' y: ',self.cyp,' z: ',self.altura
 
 
-
-
-                    if self.cxpp < self.base_x0+1:
-                        pposx = 0
-                    elif self.cxpp < self.base_x1+1:
-                        self.pposx = int(254*(self.cxpp-self.base_x0)/(self.base_x1 - self.base_x0))
+				if self.cxpp < self.base_x0+1:
+					pposx = 0
+				elif self.cxpp < self.base_x1+1:
+					self.pposx = int(254*(self.cxpp-self.base_x0)/(self.base_x1 - self.base_x0))
     ##                        if pposx < 0:
     ##                            pposx =  0
-                    else:
-                        pposx = 254
+				else:
+					pposx = 254
 
-                    if self.cypp < self.base_y0+1:
-                        pposy = 254
-                    elif self.cypp < self.base_y1+1:
-                        self.pposy = 254-int(254*(self.cypp-self.base_y0)/(self.base_y1-self.base_y0))
+				if self.cypp < self.base_y0+1:
+					pposy = 254
+				elif self.cypp < self.base_y1+1:
+					self.pposy = 254-int(254*(self.cypp-self.base_y0)/(self.base_y1-self.base_y0))
     ##                        if pposy < 0:
     ##                            pposy =  0
-                    else:
-                        pposy = 0
+				else:
+					pposy = 0
                
 
-                    if cxc < self.base_x0+1:
-                        cposx = 0
-                    elif cxc < self.base_x1+1:
-                        self.cposx = int(254*(cxc-self.base_x0)/abs(self.base_x0 - self.base_x1))
+				if cxc < self.base_x0+1:
+					cposx = 0
+				elif cxc < self.base_x1+1:
+					self.cposx = int(254*(cxc-self.base_x0)/abs(self.base_x0 - self.base_x1))
     ##                        if cposx < 0:
     ##                            cposx =  0
-                    else:
-                        cposx = 254
+				else:
+					cposx = 254
 
-                    if cyc < self.base_y0+1:
-                        cposy = 254
-                    elif cyc < self.base_y1+1:
-                        self.cposy = 254-int(254*(cyc-self.base_y0)/abs(self.base_y0-self.base_y1))
+				if cyc < self.base_y0+1:
+					cposy = 254
+				elif cyc < self.base_y1+1:
+					self.cposy = 254-int(254*(cyc-self.base_y0)/abs(self.base_y0-self.base_y1))
     ##                        if cposy < 0:
     ##                            cposy =  0
-                    else:
-                        cposy = 0
+				else:
+					cposy = 0
     ##                   print'P (',pposx,pposy,'),C (',cposx,cposy,')','A ',aP
                      
 
     ##                    print self.pposx, self.pposy, self.cposx, self.cposy
-                    self.ser.write(chr(255))
-                    self.ser.write(chr(self.pposx))
-                    self.ser.write(chr(self.pposy))
-                    self.ser.write(chr(self.cposx))
-                    self.ser.write(chr(self.cposy))
+				self.ser.write(chr(255))
+				self.ser.write(chr(self.pposx))
+				self.ser.write(chr(self.pposy))
+				self.ser.write(chr(self.cposx))
+				self.ser.write(chr(self.cposy))
 
     ##                    '''
     ##                    Nuevas lineas para comunicacion SPI
@@ -350,88 +347,74 @@ class BallCatcherMain:
     ##                    self.spi.close()
 
     ##                    print 'x: ',self.cxpp,' y: ', self.cypp
-                    if 0 < self.cxpp and self.cxpp < self.TamMax_x:
-                        if 0 < self.cypp and self.cypp < self.TamMax_y:
-                            cv2.circle(self.imagen_mostrar, (self.cxpp,self.cypp), 4, (0,0,255), -1)
-                    cv2.circle(self.imagen_mostrar, (self.cxp,self.cyp), 3, (0,255,0), -1)
-                    cv2.circle(self.imagen_mostrar, (cxc,cyc), 3, (255,0,0), -1)
-                    #cv2.circle(self.imagen_mostrar, (int(self.TamMax_x/2),int(self.TamMax_y/2)), 3, (255,0,255), -1)
-                    globalEvent.set()
+				if 0 < self.cxpp and self.cxpp < self.TamMax_x:
+					if 0 < self.cypp and self.cypp < self.TamMax_y:
+						cv2.circle(self.imagen_mostrar, (self.cxpp,self.cypp), 4, (0,0,255), -1)
+				cv2.circle(self.imagen_mostrar, (self.cxp,self.cyp), 3, (0,255,0), -1)
+				cv2.circle(self.imagen_mostrar, (cxc,cyc), 3, (255,0,0), -1)
+				#cv2.circle(self.imagen_mostrar, (int(self.TamMax_x/2),int(self.TamMax_y/2)), 3, (255,0,255), -1)
+				toc = time.time()
+				print "\tReconocimientoTime", toc-tic
+				globalEvent.set()
 
-
-
-
-
-
-                ## debug para cerrar programa
-                key = cv2.waitKey(1) & 0xFF
-                if key == 27: #esc
-					g = self.video.camera.awb_gains
-					print g
-					self.vid.stop()
-					break
+			## debug para cerrar programa
+			key = cv2.waitKey(1) & 0xFF
+			if key == 27: #esc
+				g = self.video.camera.awb_gains
+				print g
+				self.vid.stop()
+				break
                     
-                elif key == 99: # c
-                    self.actual = "calibration"
-                elif key == 100: # d
-                    print self.radio
-                elif key == 115: # s
-                    if self.show:
-                        self.show = False
-                    else:
-                        self.show = True
-                elif key == 116: # t
-                    if self.text:
-                        self.text = False
-                    else:
-                        self.text = True
-                elif key ==  114: # R
-                    self.largo = 20
-                    self.datos_x = np.zeros(self.largo)
-                    self.datos_y = np.zeros(self.largo)
-                    self.datos_z = np.zeros(self.largo)
-                    self.datos_t = np.zeros(self.largo)
-                    self.indice = 0
-                    self.begin_time = True
-                    self.cxpp = -1
-                    self.cypp = -1
+			elif key == 99: # c
+				self.actual = "calibration"
+			elif key == 100: # d
+				print self.radio
+			elif key == 115: # s
+				if self.show:
+					self.show = False
+				else:
+					self.show = True
+			elif key == 116: # t
+				if self.text:
+					self.text = False
+				else:
+					self.text = True
+			elif key ==  114: # r
+				self.largo = 20
+				self.datos_x = np.zeros(self.largo)
+				self.datos_y = np.zeros(self.largo)
+				self.datos_z = np.zeros(self.largo)
+				self.datos_t = np.zeros(self.largo)
+				self.indice = 0
+				self.begin_time = True
+				self.cxpp = -1
+				self.cypp = -1
                     
                
-                if self.show:     
-                    cv2.imshow("Ball Catcher", self.imagen_mostrar)
+			if self.show:     
+				cv2.imshow("Ball Catcher", self.imagen_mostrar)
     ##                print time.time() - self.tiempo_actual
-                self.AreaTotalP = []
-                self.AreaTotalC = []
+			self.AreaTotalP = []
+			self.AreaTotalC = []
     ##                print 'total ', time.time() - self.tiempo_inicial_1
-                
-
 
 
 	def run(self):
 	# Inicia thread de captura de informacion
-	    t = Thread(target=self.predictivo, args=())
-	    t.daemon = True
-	    t.start()
-	    return self
-
-	def extrapolacion(self, posicion, velocidad, aceleracion, Dt):
-            posicion[0] += velocidad[0]*Dt
-            posicion[1] += velocidad[1]*Dt
-            posicion[2] += velocidad[2]*Dt
-
-            velocidad[0] += aceleracion[0]*Dt
-            velocidad[1] += aceleracion[1]*Dt
-            velocidad[2] += aceleracion[2]*Dt
-
-            return posicion, velocidad
+		t = Thread(target=self.predictivo, args=())
+		t.daemon = True
+		t.start()
+		return self
 
 
 	def predictivo(self):
-            while True:
-                globalEvent.wait()
+		while True:
+			globalEvent.wait()
+			print "\t\tInicioPrediccion"
+			tic = time.time()
             ############## Desde esta linea comenzará el predictivo
             ############## Pensar idea de paralelizar
-                if self.cxp > 0 and self.cyp > 0:  # Esta condicion es para saber de que entró la pelota al campo de visión
+			if self.cxp > 0 and self.cyp > 0:  # Esta condicion es para saber de que entró la pelota al campo de visión
     ##                        if self.indice == 0:
     ##                            self.tiempo_inicial = time.time()
     ##                            self.tiempo_actual = 0
@@ -439,144 +422,127 @@ class BallCatcherMain:
     ##                            # Si no es el tiempo inicial, el tiempo actual se resta con el anterior
     ##                            # Por defecto, muestra 1 es 0
     ##                            self.tiempo_actual = time.time() - self.tiempo_inicial
-                    '''
-                    Se van guardando los datos con cada iteracion
-                    '''
-                    if self.altura > 0:
-                        self.datos_x[self.indice] = self.cxp
-                        self.datos_y[self.indice] = self.cyp
-                        self.datos_z[self.indice] = self.altura - self.altura_canasta
-                        self.datos_t[self.indice] = time.time() - self.tiempo_inicial_1
+				'''
+				Se van guardando los datos con cada iteracion
+				'''
+				if self.altura > 0:
+					self.datos_x[self.indice] = self.cxp
+					self.datos_y[self.indice] = self.cyp
+					self.datos_z[self.indice] = self.altura - self.altura_canasta
+					self.datos_t[self.indice] = time.time() - self.tiempo_inicial_1
                         
                     
-                        if self.indice >= 3:
-                            z_mov = np.polyfit(self.datos_t[1:self.indice + 1], self.datos_z[1:self.indice + 1],2)
-                            p_mov = np.poly1d(z_mov)
-                            t_caida = max(p_mov.r)
-                            print "tiempo: ",self.indice, ' ' ,self.datos_t[1:self.indice + 1]
-                            print "altura: ",self.indice, ' ' ,self.datos_z[1:self.indice + 1]
-                            print "coefic: ", self.indice, ' ', p_mov
-                            print "tfinal: ", self.indice, ' ', t_caida
-                            print 'fit z ', time.time() - self.tiempo_inicial_1
+					if self.indice >= 3:
+						z_mov = np.polyfit(self.datos_t[1:self.indice + 1], self.datos_z[1:self.indice + 1],2)
+						p_mov = np.poly1d(z_mov)
+						t_caida = max(p_mov.r)
+						'''print "tiempo: ",self.indice, ' ' ,self.datos_t[1:self.indice + 1]
+						print "altura: ",self.indice, ' ' ,self.datos_z[1:self.indice + 1]
+						print "coefic: ", self.indice, ' ', p_mov
+						print "tfinal: ", self.indice, ' ', t_caida
+						print 'fit z ', time.time() - self.tiempo_inicial_1'''
 
-                            ## Velocidad en x
-                            x_mov = np.polyfit(self.datos_t[1:self.indice + 1], self.datos_x[1:self.indice + 1],1)
-                            x_fin = np.poly1d(x_mov)
+						## Velocidad en x
+						x_mov = np.polyfit(self.datos_t[1:self.indice + 1], self.datos_x[1:self.indice + 1],1)
+						x_fin = np.poly1d(x_mov)
                             
-                            self.cxpp = int(round(x_fin(t_caida)))
+						self.cxpp = int(round(x_fin(t_caida)))
 
-                            ## Velocidad en y
-                            y_mov = np.polyfit(self.datos_t[1:self.indice + 1], self.datos_y[1:self.indice + 1],1)
-                            y_fin = np.poly1d(y_mov)
-                            self.cypp = int(round(y_fin(t_caida)))
+						## Velocidad en y
+						y_mov = np.polyfit(self.datos_t[1:self.indice + 1], self.datos_y[1:self.indice + 1],1)
+						y_fin = np.poly1d(y_mov)
+						self.cypp = int(round(y_fin(t_caida)))
 
-                    else:
-                        
-                        print "@@@@@@@@@@@@@@@@@"
+				else:
+					print "@@@@@@@@@@@@@@@@@"
 
-                    # aumentamos el indice
-                    if self.altura > 0:
-                        self.indice += 1
+				# aumentamos el indice
+				if self.altura > 0:
+					self.indice += 1
 
-                    if self.indice >= self.largo:
-                        self.file_number += 1 
-                        name_file = 'lanzamiento' + str(self.file_number) + '.txt'
-                        with open(name_file,'w') as archivo:
-                            archivo.write("x,y,z,t\n")
-                            for i in range(self.largo):
-                                archivo.write(str(self.datos_x[i])+','+str(self.datos_y[i])+','+str(self.datos_z[i])+','+str(self.datos_t[i])+'\n')
-                        self.indice = 0
-                globalEvent.clear()
+				if self.indice >= self.largo:
+					self.file_number += 1 
+					name_file = 'lanzamiento' + str(self.file_number) + '.txt'
+					with open(name_file,'w') as archivo:
+						archivo.write("x,y,z,t\n")
+						for i in range(self.largo):
+							archivo.write(str(self.datos_x[i])+','+str(self.datos_y[i])+','+str(self.datos_z[i])+','+str(self.datos_t[i])+'\n')
+					self.indice = 0
+			toc = time.time()
+			print "\t\tPrediction Time", toc-tic
+			globalEvent.clear()
                        
 
-        def selectROI(self, event, x, y, flags, param):
-            """
-            Selecciona con el mouse el area de la region de interes
-            event = raton click event
-            x = coordenada x
-            y = coordenada y
-            flags = parametro que entrega la funcion setMouseCallback
-            param = parametro que entrega la funcion setMouseCallback 
-            """
-            if event == cv2.EVENT_LBUTTONDOWN:
-                self.coords_colP = [(x,y)]
-                self.rect = [(x,y)]
-                self.mouseON = True
-                print'Se apreto Mouse', self.coords_colP
-            if event == cv2.EVENT_MOUSEMOVE and self.mouseON == True:
-                self.rect = [(x,y)]
-            if event == cv2.EVENT_LBUTTONUP:
-                self.coords_colP.append((x,y))
-                self.mouseON = False
-                if self.actual == 'base':
-                    self.base_x0 = int(self.coords_colP[0][0])
-                    self.base_y0 = int(self.coords_colP[0][1])
-                    self.base_x1 = int(self.coords_colP[1][0])
-                    self.base_y1 = int(self.coords_colP[1][1])
-                    self.actual = 'calibration'
-                    print'(',self.base_x0,self.base_y0,')','(',self.base_x1,self.base_y1,')'
-                elif self.actual == 'calibration':
-                    self.actual = 'reconocimiento'
-                    self.calculateHSV = True
-                print'Se solto Mouse', self.coords_colP
+	def selectROI(self, event, x, y, flags, param):
+		"""
+		Selecciona con el mouse el area de la region de interes
+		event = raton click event
+		x = coordenada x
+		y = coordenada y
+		flags = parametro que entrega la funcion setMouseCallback
+		param = parametro que entrega la funcion setMouseCallback 
+		"""
+		if event == cv2.EVENT_LBUTTONDOWN:
+			self.coords_colP = [(x,y)]
+			self.rect = [(x,y)]
+			self.mouseON = True
+			print'Se apreto Mouse', self.coords_colP
+		if event == cv2.EVENT_MOUSEMOVE and self.mouseON == True:
+			self.rect = [(x,y)]
+		if event == cv2.EVENT_LBUTTONUP:
+			self.coords_colP.append((x,y))
+			self.mouseON = False
+			if self.actual == 'base':
+				self.base_x0 = int(self.coords_colP[0][0])
+				self.base_y0 = int(self.coords_colP[0][1])
+				self.base_x1 = int(self.coords_colP[1][0])
+				self.base_y1 = int(self.coords_colP[1][1])
+				self.actual = 'calibration'
+				print'(',self.base_x0,self.base_y0,')','(',self.base_x1,self.base_y1,')'
+			elif self.actual == 'calibration':
+				self.actual = 'reconocimiento'
+				self.calculateHSV = True
+			print'Se solto Mouse', self.coords_colP
 
 	def HSV_Roi(self, p_element1, HSV_image):
-            """
-            Obtiene valores HSV de la region de interes
-            p_element1 = Lista con tuplas de coordenadas superior izquierda, inferior derecha
-            HSV_iamge = imagen completa en HSV -> Matriz 
-            """
-            H_P = []
-            S_P = []
-            V_P = []
-	    for i in range(p_element1[0][1],p_element1[1][1]):
-	        for j in range(p_element1[0][0],p_element1[1][0]):
-	            H_P.append(HSV_image[i][j][0])
-	            if HSV_image[i][j][0] == 0:
-	                H_P.remove(0)
+		"""
+		Obtiene valores HSV de la region de interes
+		p_element1 = Lista con tuplas de coordenadas superior izquierda, inferior derecha
+		HSV_iamge = imagen completa en HSV -> Matriz 
+		"""
+		H_P = []
+		S_P = []
+		V_P = []
+		for i in range(p_element1[0][1],p_element1[1][1]):
+			for j in range(p_element1[0][0],p_element1[1][0]):
+				H_P.append(HSV_image[i][j][0])
+				if HSV_image[i][j][0] == 0:
+					H_P.remove(0)
 ##	            S_P.append(HSV_image[i][j][1])
 ##	            V_P.append(HSV_image[i][j][2])
 ##	            
 	    
-	    self.HMaxP = int(max(H_P))#int(25)
-            #self.HMaxP = int(14)
-	    self.SMaxP = int(255)
-	    self.VMaxP = int(255)
-	    #self.HMinP = int(7)
-	    self.HMinP = int(min(H_P))#int(1)
-	    self.SMinP = int(200)#int(min(S_P))
-	    self.VMinP = int(100)
-	    print self.HMaxP,self.HMinP,self.SMaxP,self.SMinP,self.VMaxP,self.VMinP
-	    self.HMaxC = int(180)
-	    self.SMaxC = int(255)
-	    self.VMaxC = int(255)
-	    self.HMinC = int(170)
-	    self.SMinC = int(80)
-	    self.VMinC = int(0)
-
-
-class RingBuffer():
-    "A 1D ring buffer using numpy arrays"
-    def __init__(self, length):
-        self.data = np.zeros(length, dtype='f')
-        self.index = 0
-
-    def extend(self, x):
-        "adds array x to ring buffer"
-        x_index = (self.index + np.arange(x.size)) % self.data.size
-        self.data[x_index] = x
-        self.index = x_index[-1] + 1
-
-    def get(self):
-        "Returns the first-in-first-out data in the ring buffer"
-        idx = (self.index + np.arange(self.data.size)) %self.data.size
-        return self.data[idx]
-
+		self.HMaxP = int(max(H_P))#int(25)
+		#self.HMaxP = int(14)
+		self.SMaxP = int(255)
+		self.VMaxP = int(255)
+		#self.HMinP = int(7)
+		self.HMinP = int(min(H_P))#int(1)
+		self.SMinP = int(200)#int(min(S_P))
+		self.VMinP = int(100)
+		print self.HMaxP,self.HMinP,self.SMaxP,self.SMinP,self.VMaxP,self.VMinP
+		self.HMaxC = int(180)
+		self.SMaxC = int(255)
+		self.VMaxC = int(255)
+		self.HMinC = int(170)
+		self.SMinC = int(80)
+		self.VMinC = int(0)
 
 
 if __name__=='__main__':
-    Tam_x = 640
-    Tam_y = 480
-    main = BallCatcherMain(Tam_x,Tam_y)
-    main.inicio()
-    cv2.destroyAllWindows()
+	
+	Tam_x = 640
+	Tam_y = 480
+	main = BallCatcherMain(Tam_x,Tam_y)
+	main.inicio()
+	cv2.destroyAllWindows()
