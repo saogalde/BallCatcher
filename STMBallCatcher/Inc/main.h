@@ -46,17 +46,28 @@
 /* USER CODE BEGIN Includes */
 #include <stdarg.h>
 void modprintf(const char* format, ...);
-#define DEBUG
+//#define DEBUG
+//#define MOTOR_DEBUG
 //#define BASE_MOTOR_ONLY
 /* USER CODE END Includes */
 
 /* Private define ------------------------------------------------------------*/
 #define MOTOR_MAX_PERIOD_COUNTS 0xEFFF
-#define MOTOR_MIN_PERIOD_COUNTS 0x2300
+#define MOTOR_MIN_PERIOD_COUNTS_X 0x2300
+#define MOTOR_MIN_PERIOD_COUNTS_Y 0x4300
+#define MOTOR_CUTSPEED_X 0x6300
+#define MOTOR_CUTSPEED_Y 0x6300
+#define MOTOR_KP_X 1
+#define MOTOR_KI_X 0
+#define MOTOR_KD_X 0
+#define MOTOR_KP_Y 1
+#define MOTOR_KI_Y 0
+#define MOTOR_KD_Y 0
+#define DUMM 0
+#define DUMM2 0
+#define DUMM3 0
 #define SERVO_CLOSED 1800
 #define SERVO_OPEN 3600
-#define CONTROL_P_X 1
-#define CONTROL_P_Y 1
 
 #define BLUE_BUTTON_Pin GPIO_PIN_13
 #define BLUE_BUTTON_GPIO_Port GPIOC

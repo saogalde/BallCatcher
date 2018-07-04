@@ -7,14 +7,28 @@
 #include "stepperControl.h"
 #include "main.h"
 
+
 void writeStepperPin(stepper_pin pin, uint8_t state){
 	HAL_GPIO_WritePin(pin.PIN_PORT, pin.PIN_NO, state);
 }
 
-uint32_t saturate(int64_t speed){
-	if(speed>=MOTOR_MAX_PERIOD_COUNTS) return MOTOR_MAX_PERIOD_COUNTS;
-	else if(speed<=MOTOR_MIN_PERIOD_COUNTS) return MOTOR_MIN_PERIOD_COUNTS;
-	else return speed;
+uint32_t absolute(int32_t s){
+	return (s>=0) ? (uint32_t)s : (uint32_t)(-1*s);
+}
+
+uint16_t saturate(uint32_t speed, stepper* st){
+	return speed>=st->speedSpan ? st->speedSpan : speed;
+}
+
+uint16_t saturate16(int64_t speed, stepper* st){
+	if(abs(speed)>=0xFFFF) return 0xFFFF-205;
+	else return abs(speed);
+}
+
+float saturateIntegrator(float sum, stepper* st){
+	if(sum > st->integratorUpperLimit) return st->integratorUpperLimit;
+	else if(sum < st->integratorLowerLimit) return st->integratorLowerLimit;
+	else return sum;
 }
 
 void changeMicrostepping(stepper* st, stepper_microstep ms){
@@ -57,8 +71,8 @@ void Stepper_SetDefaultConfig(stepper* st, stepper_microstep ms){
 	/*if(st->status & SS_UNDEFINED){
 		st->status = SS_STOPPED;
 	}*/
-	st->maxStepsSec = MOTOR_MAX_PERIOD_COUNTS;
-	st->minStepsSec = MOTOR_MIN_PERIOD_COUNTS;
+	/*st->maxStepsSec = MOTOR_MAX_PERIOD_COUNTS;
+	st->minStepsSec = MOTOR_MIN_PERIOD_COUNTS;*/
 	st->status = SS_STOPPED;
 }
 
@@ -70,54 +84,68 @@ void Stepper_Disable(stepper* st){
 	writeStepperPin(st->STPIN_EN,RESET);
 }
 
+void Stepper_ChangeDir(stepper* st, FlagStatus status){
+	writeStepperPin(st->STPIN_DIR, status);
+	st->dir = (uint8_t)status;
+}
 
 void Stepper_Controller(stepper* st){
 	stepper_status status = st->status;
-	if (status & SS_STOPPED) {
+	switch(status){
+	case SS_STOPPED:
 		if (st->targetPosition != st->currentPosition) {
 			st->status = SS_STARTING;
 			Stepper_Enable(st);
 			modprintf("PWM_1\n");
 			HAL_TIM_PWM_Start(st->STEP_TIMER, st->STEP_CHANNEL);
-			st->currentStepsSec = st->minStepsSec;
+			/*st->currentStepsSec = st->minStepsSec;
 			st->initialPosition = st->currentPosition;
-			st->accelPrescaler = 2;
+			st->accelPrescaler = 2;*/
 		}
+		break;
+	case SS_RUNNING_BACKWARD:
+	case SS_RUNNING_FORWARD:
+		//st->currentPosition += GetStepDirectionUnit(st);
+		/**** CONTROLADOR ****/
+		st->currentError = Stepper_RemainingSteps(st);
+		st->sumError = saturateIntegrator(st->sumError+st->currentError*0.01F, st);
+		//st->derivError = (st->currentError-st->prevError);
+		//st->testPWM = st->maxPeriodCounts - st->controllerOutput;
+		//st->controllerOutput = saturate(st->Kp*st->currentError+(int32_t)(st->Ki*st->sumError*0.1F),st); //+ st->Ki*st->sumError + st->Kd*st->derivError;
+		st->testPWM = st->Kp*0.1F*st->currentError+(int32_t)(st->Ki*st->sumError);//+st->Kd*st->derivError;
+		st->controllerOutput = st->Kp*0.1F*st->currentError+(int32_t)(st->Ki*st->sumError*0.1F);//+st->Kd*st->derivError;
+		/*** CHANGE DIR ACCORDING TO CONTROLLER **/
+		if(st->controllerOutput < 0){
+			st->status = SS_RUNNING_BACKWARD;
+			Stepper_ChangeDir(st,RESET);
+			st->controllerOutput = (uint16_t)(-1.0F*st->controllerOutput);
+		}
+		else{
+			st->status = SS_RUNNING_FORWARD;
+			Stepper_ChangeDir(st,SET);
+		}
+
+		st->controllerOutput = saturate(st->controllerOutput,st); //+ st->Ki*st->sumError + st->Kd*st->derivError;
+		//st->currentStepsSec = (uint16_t)(st->maxPeriodCounts - st->controllerOutput);
+		st->currentStepsSec = (uint16_t)(st->maxPeriodCounts - st->controllerOutput);
+		if(st->STEP_TIMER->Instance->CNT > st->currentStepsSec) __HAL_TIM_SET_COUNTER(st->STEP_TIMER, 0);
+		__HAL_TIM_SET_AUTORELOAD(st->STEP_TIMER,st->currentStepsSec);
+		st->prevError = st->currentError;
+
+		break;
 	}
-	//Stepper_SetTimerByStepsSec(st);
-	// check if we need to brake.
-	// SIMPLEST CRITERIA BY NOW :( = start braking when reached halfway
-	/*if(!(status & SS_BRAKING)){ // if not braking
-		if (abs(st->currentPosition - st->targetPosition) <= abs(st->currentPosition - st->targetPosition)/2){
-			st->status &= ~SS_BRAKECORRECTION;
-			st->status |= SS_BRAKING;
-		}
-
-	}*/
-	/*st->accelPrescaler--;
-	if(st->accelPrescaler <= 0){
-		st->accelPrescaler = 2;
-	}*/
-
 
 }
 
 void Stepper_PulseUpdate(stepper* st){
-	HAL_GPIO_WritePin(GPIOA, LED_Pin, SET);
-	/*if(st->maxPosition>10000){
-		modprintf("1\n");
-	}
-	else{
-		modprintf("2\n");
-	}*/
-	switch (st->status & ~(SS_BRAKING|SS_BRAKECORRECTION)){ // masking so we dont loose info about direction
+	switch (st->status){
 	case SS_STARTING:
 		if (st->currentPosition > st->targetPosition){
 			st->status = SS_RUNNING_BACKWARD;
-			writeStepperPin(st->STPIN_DIR, RESET);
+			Stepper_ChangeDir(st,RESET);
 		} else if (st->currentPosition < st->targetPosition){
 			st->status = SS_RUNNING_FORWARD;
-			writeStepperPin(st->STPIN_DIR, SET);
+			Stepper_ChangeDir(st,SET);
 		} else if (st->currentPosition == st->targetPosition) {
 			st->status = SS_STOPPED;
 			modprintf("PWM_0\n");
@@ -126,33 +154,23 @@ void Stepper_PulseUpdate(stepper* st){
 		break;
 	case SS_RUNNING_FORWARD:
     case SS_RUNNING_BACKWARD:
-    	//modprintf("SS_RUNNING_FORWARD\n");
-    	if(st->calib) st->currentPosition += GetStepDirectionUnit(st);
-    	else{
-    		int64_t newSpeed = saturate((int64_t)(MOTOR_MAX_PERIOD_COUNTS - st->proportionalTerm*(Stepper_RemainingSteps(st))*(st->speedSpan)*0.001F));
-    		__HAL_TIM_SET_AUTORELOAD(st->STEP_TIMER,newSpeed);
-    	}
-    	//modprintf("STP: %d\n", Stepper_RemainingSteps(st));
-    	if (st->currentPosition > st->targetPosition){
+    	//if(st->calib) st->currentPosition += GetStepDirectionUnit(st);
+    	//st->currentPosition += GetStepDirectionUnit(st);
+    	/*if (st->currentPosition > st->targetPosition){
 			st->status = SS_RUNNING_BACKWARD;
-			writeStepperPin(st->STPIN_DIR, RESET);
+			Stepper_ChangeDir(st,RESET);
 		} else if (st->currentPosition < st->targetPosition){
 			st->status = SS_RUNNING_FORWARD;
-			writeStepperPin(st->STPIN_DIR, SET);
-		} else if (st->currentPosition == st->targetPosition) {
+			Stepper_ChangeDir(st,SET);
+		} else */if (st->currentPosition == st->targetPosition) {
 			st->status = SS_STOPPED;
 			HAL_TIM_PWM_Stop(st->STEP_TIMER, st->STEP_CHANNEL);
 			modprintf("PWM_0\n");
 			//Stepper_Disable(st);
 		}
-      // The actual pulse has been generated by previous timer run.
-    	/*if(st->currentPosition >= st->maxPosition-30){
-    		int i = 0;
-    		i++;
-    	}*/
     	break;
 	}
-	HAL_GPIO_WritePin(GPIOA, LED_Pin, RESET);
+	//HAL_GPIO_WritePin(GPIOA, LED_Pin, RESET);
 }
 
 void Stepper_TurnOnTimer_IT(stepper* st){
@@ -174,12 +192,13 @@ int32_t Stepper_RemainingSteps(stepper* st){
 }
 
 
+/*
 void Stepper_SetTimerByStepsSec(stepper* st){
 	//uint32_t timerTicks = STEP_TIMER_CLOCK / step -> currentSPS;
 	int32_t sign = Stepper_isItBraking(st);
 	st->currentStepsSec += st->accelStepsSec*sign;
 	st->STEP_TIMER->Instance->ARR = st->currentStepsSec;
-}
+}*/
 
 
 bool Stepper_AtTarget(stepper* st){

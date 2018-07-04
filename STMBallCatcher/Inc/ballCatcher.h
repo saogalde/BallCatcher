@@ -17,8 +17,8 @@
 #define PULLEY_PERIMETER		(float)(2.0*3.14f*PULLEY_RADIUS)
 #define CAPTURE_SIZE_CM_X		59.0F		// in cm
 #define CAPTURE_SIZE_CM_Y		42.0F		// in cm
-#define CORRECTION_X			1.3F
-#define CORRECTION_Y			0.84F
+#define CORRECTION_X			1.8F
+#define CORRECTION_Y			1.1F
 #define CAPTURE_SIZE_STEPS_X	(int)((CAPTURE_SIZE_CM_X/PULLEY_PERIMETER)*STEPS_BY_TURN*CORRECTION_X)	// in 1*steps
 #define CAPTURE_SIZE_STEPS_Y	(int)((CAPTURE_SIZE_CM_Y/PULLEY_PERIMETER)*STEPS_BY_TURN*CORRECTION_Y) 	// in 1*steps
 
@@ -44,19 +44,19 @@ TIM_HandleTypeDef* ballCatcherTimer;
 TIM_HandleTypeDef* stepperUpdateTimer;
 TIM_HandleTypeDef* servoTimer;
 I2C_HandleTypeDef* hi2c;
-//UART_HandleTypeDef* uartDevice;
-SPI_HandleTypeDef* spiDevice;
+UART_HandleTypeDef* uartDevice;
+//SPI_HandleTypeDef* spiDevice;
 DMA_HandleTypeDef* hdma;
 volatile bool captured;
 volatile bool ballDetected;
-uint8_t rxBuffer[4];
+uint8_t rxBuffer;
 volatile bool receiving_pos;
 volatile bool receiving_cat;
 volatile bool x_otherwise_y;
 // initializes full system
 void initBallCatcher(TIM_HandleTypeDef* htimBasal, TIM_HandleTypeDef* htimCentral, \
-		TIM_HandleTypeDef* stUp, TIM_HandleTypeDef* bcTim, TIM_HandleTypeDef* servoTim, \
-		I2C_HandleTypeDef* i2cdevice, SPI_HandleTypeDef* ud,
+		TIM_HandleTypeDef* stUp, TIM_HandleTypeDef* bcTim, \
+		I2C_HandleTypeDef* i2cdevice, UART_HandleTypeDef* ud,
 		DMA_HandleTypeDef* dmad);
 void BallCatcher_Controller(stepper* st1, stepper* st2);
 void BallCatcher_TurnOnTimerIT();
@@ -71,7 +71,7 @@ void BallCatcher_CloseDoor();
 
 // calibrates the system by going home and setting the 0,0 coordinate
 void calibrate();
-
+void motor_debug();
 // serial functionality
-void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi);
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
 #endif /* BALLCATCHER_H_ */

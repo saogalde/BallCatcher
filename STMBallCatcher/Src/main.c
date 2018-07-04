@@ -50,20 +50,20 @@
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
-SPI_HandleTypeDef hspi2;
-DMA_HandleTypeDef hdma_spi2_rx;
-
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
-TIM_HandleTypeDef htim12;
 TIM_HandleTypeDef htim13;
 TIM_HandleTypeDef htim14;
+
+UART_HandleTypeDef huart3;
+DMA_HandleTypeDef hdma_usart3_rx;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 extern stepper motorEjeCentral;
 extern stepper motorEjeBasal;
-extern uint8_t rxBuffer[4];
+//extern uint8_t rxBuffer[4];
+//DMA_HandleTypeDef hdma_spi2_rx;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -75,9 +75,8 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM13_Init(void);
 static void MX_I2C1_Init(void);
-static void MX_TIM12_Init(void);
-static void MX_SPI2_Init(void);
-
+static void MX_USART3_UART_Init(void);
+                                    
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
                                 
                                 
@@ -136,24 +135,22 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM13_Init();
   MX_I2C1_Init();
-  MX_TIM12_Init();
-  MX_SPI2_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
   #ifdef DEBUG
   initialise_monitor_handles();
   #endif
-  /*HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);*/
-  initBallCatcher(&htim2, &htim3, &htim14, &htim13, &htim12, &hi2c1, &hspi2, &hdma_spi2_rx);
-  //HAL_TIM_PWM_Start(motorEjeBasal.STEP_TIMER, motorEjeBasal.STEP_CHANNEL);
-  //__HAL_TIM_ENABLE_IT(&htim2, TIM_IT_UPDATE);
-  //__HAL_TIM_ENABLE_IT(&htim3, TIM_IT_UPDATE);
-  //__HAL_TIM_ENABLE_IT(&htim13, TIM_IT_UPDATE);
-  //HAL_TIM_Base_Start_IT(&htim13);
-  //HAL_TIM_Base_Start_IT(&htim14);
-  //watcher(&motorEjeBasal, &motorEjeCentral);
-  //motorEjeBasal.targetPosition=13000;
-  //motorEjeBasal.targetPosition=99999999999;
+  #ifdef MOTOR_DEBUG
+  /*__HAL_TIM_SET_PRESCALER(&htim2,1000);
+  __HAL_TIM_SET_PRESCALER(&htim3,1000);
+  __HAL_TIM_SET_PRESCALER(&htim14,1000);
+  __HAL_TIM_SET_PRESCALER(&htim13,1000);*/
+  /*__HAL_TIM_SET_PRESCALER(&htim2,1);
+    __HAL_TIM_SET_PRESCALER(&htim3,1);
+    __HAL_TIM_SET_PRESCALER(&htim14,1);
+    __HAL_TIM_SET_PRESCALER(&htim13,1);*/
+  #endif
+  initBallCatcher(&htim2, &htim3, &htim14, &htim13, &hi2c1, &huart3, &hdma_usart3_rx);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -163,17 +160,10 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-	  HAL_SPI_Receive_DMA(&hspi2, rxBuffer, 4);
-	  HAL_Delay(1000);
-	  /* HAL_Delay(2000);
-	  BallCatcher_OpenDoor();
+	  /*motorEjeBasal.targetPosition = 1000;
 	  HAL_Delay(2000);
-	  BallCatcher_CloseDoor();*/
-	 /* motorEjeBasal.targetPosition=50;
-	  	  HAL_Delay(0.5);
-	  	  motorEjeBasal.targetPosition=0;
-	  	  HAL_Delay(0.5);*/
-
+	  motorEjeBasal.targetPosition = 0;
+	  HAL_Delay(2000);*/
   }
   /* USER CODE END 3 */
 
@@ -272,29 +262,6 @@ static void MX_I2C1_Init(void)
 
 }
 
-/* SPI2 init function */
-static void MX_SPI2_Init(void)
-{
-
-  /* SPI2 parameter configuration*/
-  hspi2.Instance = SPI2;
-  hspi2.Init.Mode = SPI_MODE_SLAVE;
-  hspi2.Init.Direction = SPI_DIRECTION_2LINES_RXONLY;
-  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi2.Init.NSS = SPI_NSS_HARD_INPUT;
-  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi2.Init.CRCPolynomial = 10;
-  if (HAL_SPI_Init(&hspi2) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-}
-
 /* TIM2 init function */
 static void MX_TIM2_Init(void)
 {
@@ -320,7 +287,7 @@ static void MX_TIM2_Init(void)
   }
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 200;
+  sConfigOC.Pulse = 180;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
@@ -357,7 +324,7 @@ static void MX_TIM3_Init(void)
   }
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 200;
+  sConfigOC.Pulse = 180;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -369,48 +336,37 @@ static void MX_TIM3_Init(void)
 
 }
 
-/* TIM12 init function */
-static void MX_TIM12_Init(void)
-{
-
-  TIM_OC_InitTypeDef sConfigOC;
-
-  htim12.Instance = TIM12;
-  htim12.Init.Prescaler = 24;
-  htim12.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim12.Init.Period = 36000;
-  htim12.Init.ClockDivision = TIM_CLOCKDIVISION_DIV4;
-  if (HAL_TIM_PWM_Init(&htim12) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = SERVO_CLOSED;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim12, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  HAL_TIM_MspPostInit(&htim12);
-
-}
-
 /* TIM13 init function */
 static void MX_TIM13_Init(void)
 {
 
+  TIM_OC_InitTypeDef sConfigOC;
+
   htim13.Instance = TIM13;
-  htim13.Init.Prescaler = 0;
+  htim13.Init.Prescaler = 24;
   htim13.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim13.Init.Period = 45000;
+  htim13.Init.Period = 36000;
   htim13.Init.ClockDivision = TIM_CLOCKDIVISION_DIV4;
   if (HAL_TIM_Base_Init(&htim13) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
+
+  if (HAL_TIM_PWM_Init(&htim13) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 1800;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim13, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  HAL_TIM_MspPostInit(&htim13);
 
 }
 
@@ -421,9 +377,28 @@ static void MX_TIM14_Init(void)
   htim14.Instance = TIM14;
   htim14.Init.Prescaler = 0;
   htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim14.Init.Period = 10000;
+  htim14.Init.Period = 9000;
   htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
+/* USART3 init function */
+static void MX_USART3_UART_Init(void)
+{
+
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 9600;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
@@ -439,9 +414,9 @@ static void MX_DMA_Init(void)
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
-  /* DMA1_Stream3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
+  /* DMA1_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
 
 }
 
