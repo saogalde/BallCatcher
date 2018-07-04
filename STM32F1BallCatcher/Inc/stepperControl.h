@@ -64,6 +64,8 @@ typedef struct{
 	volatile uint32_t minStepsSec;
 	volatile uint32_t maxStepsSec;
 	volatile uint32_t currentStepsSec;
+	volatile uint32_t maxPeriodCounts;
+	volatile uint32_t minPeriodCounts;
 	uint32_t speedSpan;
 
 	// accelerations

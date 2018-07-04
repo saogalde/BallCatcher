@@ -48,14 +48,15 @@
 /* USER CODE END Includes */
 
 /* Private define ------------------------------------------------------------*/
-/*#define MOTOR_MAX_PERIOD_COUNTS 0xEFFF
-#define MOTOR_MIN_PERIOD_COUNTS 0x2300*/
-#define MOTOR_MAX_PERIOD_COUNTS 0xFFFF
-#define MOTOR_MIN_PERIOD_COUNTS 0x11FF
+#define MOTOR_MAX_PERIOD_COUNTS 0xEFFF
+//#define MOTOR_MIN_PERIOD_COUNTS_X 0x4300
+#define MOTOR_MIN_PERIOD_COUNTS_X 0x1300
 #define SERVO_CLOSED 1800
 #define SERVO_OPEN 3600
-#define CONTROL_P_X 10
-#define CONTROL_P_Y 10
+#define CONTROL_P_X 1
+#define CONTROL_P_Y 1
+#define MOTOR_MIN_PERIOD_COUNTS_Y 0x1300
+//#define MOTOR_MIN_PERIOD_COUNTS_Y 0x2300
 
 #define LED_Pin GPIO_PIN_13
 #define LED_GPIO_Port GPIOC

@@ -11,9 +11,9 @@ void writeStepperPin(stepper_pin pin, uint8_t state){
 	HAL_GPIO_WritePin(pin.PIN_PORT, pin.PIN_NO, state);
 }
 
-uint32_t saturate(int64_t speed){
-	if(speed>=MOTOR_MAX_PERIOD_COUNTS) return MOTOR_MAX_PERIOD_COUNTS;
-	else if(speed<=MOTOR_MIN_PERIOD_COUNTS) return MOTOR_MIN_PERIOD_COUNTS;
+uint32_t saturate(int64_t speed, stepper* st){
+	if(speed>=st->maxPeriodCounts) return st->maxPeriodCounts;
+	else if(speed<=st->minPeriodCounts) return st->minPeriodCounts;
 	else return speed;
 }
 
@@ -61,8 +61,8 @@ void Stepper_SetDefaultConfig(stepper* st, stepper_microstep ms){
 	/*if(st->status & SS_UNDEFINED){
 		st->status = SS_STOPPED;
 	}*/
-	st->maxStepsSec = MOTOR_MAX_PERIOD_COUNTS;
-	st->minStepsSec = MOTOR_MIN_PERIOD_COUNTS;
+	//st->maxStepsSec = MOTOR_MAX_PERIOD_COUNTS;
+	//st->minStepsSec = MOTOR_MIN_PERIOD_COUNTS;
 	st->status = SS_STOPPED;
 }
 
@@ -135,7 +135,7 @@ void Stepper_PulseUpdate(stepper* st){
     	//st->currentPosition += GetStepDirectionUnit(st);
     	//else{
     	st->minStepsSec = (uint32_t)(st->proportionalTerm*(Stepper_RemainingSteps(st))*(st->speedSpan));
-    	st->currentStepsSec = saturate((int64_t)(MOTOR_MAX_PERIOD_COUNTS - st->proportionalTerm*(Stepper_RemainingSteps(st))*(st->speedSpan)*0.01F));
+    	st->currentStepsSec = saturate((int64_t)(st->maxPeriodCounts - st->proportionalTerm*(Stepper_RemainingSteps(st))*(st->speedSpan)*0.01F), st);
     	__HAL_TIM_SET_AUTORELOAD(st->STEP_TIMER,st->currentStepsSec);
     	//}
     	//modprintf("STP: %d\n", Stepper_RemainingSteps(st));

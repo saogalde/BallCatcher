@@ -60,9 +60,13 @@ void initBallCatcher(TIM_HandleTypeDef* htimBasal, TIM_HandleTypeDef* htimCentra
 
 	motorEjeBasal.maxPosition = CAPTURE_SIZE_STEPS_X;
 	motorEjeCentral.maxPosition = CAPTURE_SIZE_STEPS_Y;
+	motorEjeBasal.maxPeriodCounts = MOTOR_MAX_PERIOD_COUNTS;
+	motorEjeBasal.minPeriodCounts = MOTOR_MIN_PERIOD_COUNTS_X;
+	motorEjeCentral.maxPeriodCounts = MOTOR_MAX_PERIOD_COUNTS;
+	motorEjeCentral.minPeriodCounts = MOTOR_MIN_PERIOD_COUNTS_Y;
 	modprintf("MAX X STEPS: %d, MAX Y STEPS: %d\n", CAPTURE_SIZE_STEPS_X, CAPTURE_SIZE_STEPS_Y);
-	motorEjeBasal.speedSpan = (MOTOR_MAX_PERIOD_COUNTS-MOTOR_MIN_PERIOD_COUNTS);
-	motorEjeCentral.speedSpan = (MOTOR_MAX_PERIOD_COUNTS-MOTOR_MIN_PERIOD_COUNTS);
+	motorEjeBasal.speedSpan = (MOTOR_MAX_PERIOD_COUNTS-MOTOR_MIN_PERIOD_COUNTS_X);
+	motorEjeCentral.speedSpan = (MOTOR_MAX_PERIOD_COUNTS-MOTOR_MIN_PERIOD_COUNTS_Y);
 	//modprintf("SPEEDSPAN X STEPS: %d, SPEEDSPAN Y STEPS: %d\n", motorEjeBasal.speedSpan, motorEjeCentral.speedSpan);
 
 	motorEjeBasal.proportionalTerm = CONTROL_P_X;
@@ -92,6 +96,7 @@ void BallCatcher_Controller(stepper* st1, stepper* st2){
 		motor_debug();
 		#endif
 		mode = MODE_WAITING;
+
 		BallCatcher_TurnOnTimerIT();
 		HAL_UART_DMAResume(uartDevice);
 		break;
@@ -160,6 +165,8 @@ void calibrate(){
 	LCD_SendLines("LISTO PARA", "CAPTURAR!");
 	//HAL_Delay(1000);
 	LCD_SendLines("DAME TU", "MEJOR TIRO ;)");
+	Stepper_Enable(&motorEjeBasal);
+	Stepper_Enable(&motorEjeCentral);
 }
 
 void motor_debug(){

@@ -60,7 +60,6 @@ DMA_HandleTypeDef hdma_usart3_rx;
 /* Private variables ---------------------------------------------------------*/
 extern stepper motorEjeCentral;
 extern stepper motorEjeBasal;
-volatile long u = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -149,7 +148,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  u++;
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
