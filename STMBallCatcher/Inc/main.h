@@ -52,7 +52,7 @@ void modprintf(const char* format, ...);
 /* USER CODE END Includes */
 
 /* Private define ------------------------------------------------------------*/
-#define MOTOR_MAX_PERIOD_COUNTS 0xEFFF
+#define MOTOR_MAX_PERIOD_COUNTS 0x1570
 #define MOTOR_MIN_PERIOD_COUNTS_X 0x2300
 #define MOTOR_MIN_PERIOD_COUNTS_Y 0x4300
 #define MOTOR_CUTSPEED_X 0x6300

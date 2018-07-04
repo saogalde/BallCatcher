@@ -160,10 +160,10 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-	  /*motorEjeBasal.targetPosition = 1000;
-	  HAL_Delay(2000);
+	  motorEjeBasal.targetPosition = 17000;
+	  HAL_Delay(3000);
 	  motorEjeBasal.targetPosition = 0;
-	  HAL_Delay(2000);*/
+	  HAL_Delay(3000);
   }
   /* USER CODE END 3 */
 

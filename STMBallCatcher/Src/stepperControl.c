@@ -106,15 +106,16 @@ void Stepper_Controller(stepper* st){
 	case SS_RUNNING_BACKWARD:
 	case SS_RUNNING_FORWARD:
 		//st->currentPosition += GetStepDirectionUnit(st);
-		/**** CONTROLADOR ****/
-		st->currentError = Stepper_RemainingSteps(st);
-		st->sumError = saturateIntegrator(st->sumError+st->currentError*0.01F, st);
+
+
+		/*st->currentError = Stepper_RemainingSteps(st);
+		st->sumError = saturateIntegrator(st->sumError+st->currentError*50e-6, st);
 		//st->derivError = (st->currentError-st->prevError);
 		//st->testPWM = st->maxPeriodCounts - st->controllerOutput;
 		//st->controllerOutput = saturate(st->Kp*st->currentError+(int32_t)(st->Ki*st->sumError*0.1F),st); //+ st->Ki*st->sumError + st->Kd*st->derivError;
-		st->testPWM = st->Kp*0.1F*st->currentError+(int32_t)(st->Ki*st->sumError);//+st->Kd*st->derivError;
+		st->testPWM = st->Kp*0.1F*st->currentError+(int32_t)(st->Ki*st->sumError*0.1F);
 		st->controllerOutput = st->Kp*0.1F*st->currentError+(int32_t)(st->Ki*st->sumError*0.1F);//+st->Kd*st->derivError;
-		/*** CHANGE DIR ACCORDING TO CONTROLLER **/
+		//** CHANGE DIR ACCORDING TO CONTROLLER *
 		if(st->controllerOutput < 0){
 			st->status = SS_RUNNING_BACKWARD;
 			Stepper_ChangeDir(st,RESET);
@@ -125,13 +126,12 @@ void Stepper_Controller(stepper* st){
 			Stepper_ChangeDir(st,SET);
 		}
 
-		st->controllerOutput = saturate(st->controllerOutput,st); //+ st->Ki*st->sumError + st->Kd*st->derivError;
+		//st->controllerOutput = saturate(st->controllerOutput,st); //+ st->Ki*st->sumError + st->Kd*st->derivError;
 		//st->currentStepsSec = (uint16_t)(st->maxPeriodCounts - st->controllerOutput);
 		st->currentStepsSec = (uint16_t)(st->maxPeriodCounts - st->controllerOutput);
 		if(st->STEP_TIMER->Instance->CNT > st->currentStepsSec) __HAL_TIM_SET_COUNTER(st->STEP_TIMER, 0);
 		__HAL_TIM_SET_AUTORELOAD(st->STEP_TIMER,st->currentStepsSec);
-		st->prevError = st->currentError;
-
+		//st->prevError = st->currentError;*/
 		break;
 	}
 
@@ -155,19 +155,24 @@ void Stepper_PulseUpdate(stepper* st){
 	case SS_RUNNING_FORWARD:
     case SS_RUNNING_BACKWARD:
     	//if(st->calib) st->currentPosition += GetStepDirectionUnit(st);
-    	//st->currentPosition += GetStepDirectionUnit(st);
-    	/*if (st->currentPosition > st->targetPosition){
+    	st->currentPosition += GetStepDirectionUnit(st);
+    	if (st->currentPosition > st->targetPosition){
 			st->status = SS_RUNNING_BACKWARD;
 			Stepper_ChangeDir(st,RESET);
 		} else if (st->currentPosition < st->targetPosition){
 			st->status = SS_RUNNING_FORWARD;
 			Stepper_ChangeDir(st,SET);
-		} else */if (st->currentPosition == st->targetPosition) {
+		} else if (st->currentPosition == st->targetPosition){
 			st->status = SS_STOPPED;
 			HAL_TIM_PWM_Stop(st->STEP_TIMER, st->STEP_CHANNEL);
 			modprintf("PWM_0\n");
 			//Stepper_Disable(st);
 		}
+    	/*if(st->controllerOutput == 0){
+			st->status = SS_STOPPED;
+			modprintf("PWM_0\n");
+			HAL_TIM_PWM_Stop(st->STEP_TIMER, st->STEP_CHANNEL);
+		}*/
     	break;
 	}
 	//HAL_GPIO_WritePin(GPIOA, LED_Pin, RESET);
